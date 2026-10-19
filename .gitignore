@@ -1,0 +1,10 @@
+/bin/
+/obj/
+/build/
+/.vs/
+*.user
+*.suo
+*.pfx
+*.key
+*.cer
+*.pdb

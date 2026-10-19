@@ -1,0 +1,20 @@
+{
+  "Schema": 1,
+  "Name": "Raw vendor HID · 16-byte reports",
+  "Speed": 2,
+  "InputDepth": 7,
+  "DelegateControls": true,
+  "Descriptors": [
+    { "Kind": "Standard", "Index": "0", "Language": "0000", "Interface": "0", "Bytes": "12 01 00 02 00 00 00 40 FF FF 10 00 00 01 01 00 00 01" },
+    { "Kind": "Standard", "Index": "0", "Language": "0000", "Interface": "0", "Bytes": "09 02 29 00 01 01 00 80 32 09 04 00 00 02 03 00 00 00 09 21 11 01 00 01 22 1D 00 07 05 81 03 10 00 01 07 05 01 03 10 00 01" },
+    { "Kind": "Report", "Index": "0", "Language": "0000", "Interface": "0", "Bytes": "06 00 FF 09 01 A1 01 15 00 26 FF 00 75 08 95 10 09 02 81 02 09 03 91 02 09 04 B1 02 C0" },
+    { "Kind": "Standard", "Index": "0", "Language": "0000", "Interface": "0", "Bytes": "06 03 09 04 0C 04" },
+    { "Kind": "Standard", "Index": "1", "Language": "0409", "Interface": "0", "Bytes": "04 03 41 00" },
+    { "Kind": "Standard", "Index": "1", "Language": "040C", "Interface": "0", "Bytes": "04 03 42 00" }
+  ],
+  "Rules": [
+    { "Setup": "C0 5A 00 00 00 00 00 00", "Mask": "FF FF FF FF FF FF 00 00", "Action": "Reply", "Bytes": "56 44 01 00" },
+    { "Setup": "40 5B 00 00 00 00 00 00", "Mask": "FF FF FF FF FF FF FF FF", "Action": "Accept", "Bytes": "" },
+    { "Setup": "40 5C 00 00 00 00 00 00", "Mask": "FF FF FF FF FF FF FF FF", "Action": "Stall", "Bytes": "" }
+  ]
+}
