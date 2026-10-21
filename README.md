@@ -20,7 +20,7 @@ Screenshots show offline previews of the applications, not hardware tests.
 1. Download **VdeviceSetup.exe** from the latest release and accept elevation.
 2. Choose **Install / update** and restart Windows if requested.
 3. Extract the release's **Vdevice-Examples** ZIP and open a control panel.
-4. Click **Create device**, accept elevation if requested and wait for **READY**.
+4. Accept the administrator prompt on opening the example, then click **Create device** and wait for **READY**.
 5. Change fields and press **Send state**. **Release / neutral** releases held
    inputs; **Disconnect** removes the virtual device.
 

@@ -154,7 +154,20 @@ inline int Window(Protocol& model,HINSTANCE instance,int show){
         if(count>2)throw std::invalid_argument("Use one optional argument: --preview.");
         const bool preview=arguments==L"--preview";
         if(!arguments.empty()&&!preview&&arguments!=L"--create")throw std::invalid_argument("Use no arguments, or --preview for an offline window without a device.");
-        if(!preview)CheckInstallation();
+        if(!preview){
+            HANDLE token=nullptr;TOKEN_ELEVATION elevation{};DWORD returned=0;
+            if(!OpenProcessToken(GetCurrentProcess(),TOKEN_QUERY,&token))throw std::runtime_error("Could not check administrator rights.");
+            const BOOL queried=GetTokenInformation(token,TokenElevation,&elevation,sizeof(elevation),&returned);CloseHandle(token);
+            if(!queried)throw std::runtime_error("Could not check administrator rights.");
+            if(!elevation.TokenIsElevated){
+                wchar_t path[32768]{};
+                if(!GetModuleFileNameW(nullptr,path,32768))throw std::runtime_error("Could not locate the example executable.");
+                const auto started=reinterpret_cast<INT_PTR>(ShellExecuteW(nullptr,L"runas",path,arguments.c_str(),nullptr,SW_SHOWNORMAL));
+                if(started<=32)throw std::runtime_error("Administrator confirmation was cancelled or the elevated example could not start.");
+                return 0;
+            }
+            CheckInstallation();
+        }
         INITCOMMONCONTROLSEX controls{sizeof(controls),ICC_STANDARD_CLASSES};InitCommonControlsEx(&controls);
         DevicePanel panel(model,preview);return panel.Run(instance,show,arguments==L"--create");
     }catch(const std::exception& error){MessageBoxW(nullptr,Wide(error.what()).c_str(),L"Vdevice example",MB_OK|MB_ICONERROR);return 1;}

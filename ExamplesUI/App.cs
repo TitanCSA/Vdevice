@@ -396,6 +396,28 @@ namespace Vdevice.Example
     internal static class App
     {
         [STAThread]
-        private static int Main(string[] args) { return args.Length == 0 ? new Application().Run(new MainWindow()) : 87; }
+        private static int Main(string[] args)
+        {
+            if (args.Length != 0) return 87;
+            try
+            {
+                var identity = System.Security.Principal.WindowsIdentity.GetCurrent();
+                using (identity)
+                {
+                    if (!new System.Security.Principal.WindowsPrincipal(identity).IsInRole(System.Security.Principal.WindowsBuiltInRole.Administrator))
+                    {
+                        Process.Start(new ProcessStartInfo(System.Reflection.Assembly.GetExecutingAssembly().Location) { UseShellExecute = true, Verb = "runas" });
+                        return 0;
+                    }
+                }
+                return new Application().Run(new MainWindow());
+            }
+            catch (Win32Exception error)
+            {
+                if (error.NativeErrorCode == 1223) return 1223;
+                MessageBox.Show(error.Message, "Vdevice example", MessageBoxButton.OK, MessageBoxImage.Error);
+                return 1;
+            }
+        }
     }
 }

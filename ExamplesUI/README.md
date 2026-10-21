@@ -5,7 +5,8 @@ as the console examples: keyboard, mouse, Xbox 360, DualShock 4 and Xbox One GIP
 Run `VdeviceKeyboardUI.exe`, `VdeviceMouseUI.exe`, `VdeviceXbox360UI.exe`,
 `VdeviceDualShock4UI.exe` or `VdeviceXboxOneGipUI.exe` from the Examples release.
 
-Click **Create device** and accept UAC if needed. Wait for **READY**, edit fields
+Normal launches request administrator rights immediately. Click **Create device**.
+Wait for **READY**, edit fields
 or toggle button bits, then click **Send state**. **Release / neutral** releases
 held inputs; **Disconnect** removes the device. **Tap state in 3 s** lets you
 focus another application, sends the selected state, then releases after 50 ms.
@@ -19,7 +20,7 @@ applications, with no additional runtime DLL to distribute.
 
 ## Descriptor Workshop
 
-Build with the repository's `Build.ps1`, then run `bin/ExamplesUI/VdeviceExampleUI.exe` with the driver installed. Keep `VdeviceBridge.dll` beside the executable. The window starts with an empty document.
+Build with the repository's `Build.ps1`, then run `bin/ExamplesUI/VdeviceExampleUI.exe` with the driver installed and accept the administrator prompt. Keep `VdeviceBridge.dll` beside the executable. The window starts with an empty document. These are device-creation panels, not input observers; virtual device creation remains explicit.
 
 1. Import `CustomDevice.json`, or add your own descriptor and control-rule rows.
 2. Select **Validate offline**. It checks the exact bytes without opening the driver.
