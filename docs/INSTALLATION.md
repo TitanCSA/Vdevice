@@ -76,3 +76,12 @@ The Descriptor Workshop requires its adjacent `VdeviceBridge.dll` and JSON
 sample; the five dedicated native control panels are standalone EXEs. For GIP,
 the example repeats the latest state briefly during startup and after changes
 to cover Windows consumer initialization; it sends the first report immediately.
+
+## Demo clock component
+
+Setup includes the Microsoft-signed `TitanDemoClock.sys` companion. It keeps this
+product's two-hour allowance in kernel memory until Windows Restart, independently
+of unloading or reinstalling the main driver. It has no user-mode background process
+and is not attached to the input stack. A product-owned driver service registers it;
+removing another product does not remove this product's registration. Missing or
+invalid clock files prevent protected operations; use setup to repair the package.

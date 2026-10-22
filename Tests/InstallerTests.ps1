@@ -55,6 +55,12 @@ $valid=@(@{Name='Vdevice.inf';Data='inf'},@{Name='Vdevice.sys';Data='sys'},@{Nam
 $manifest=@{};foreach($entry in $valid){$manifest[$entry.Name]=Hash-Text $entry.Data}
 $results=@()
 $results+=New-Fixture 'Valid' $valid $manifest $true
+$clockPayload=$valid+@(@{Name='TitanDemoClock.sys';Data='signed-clock'})
+$clockManifest=@{}+$manifest;$clockManifest['TitanDemoClock.sys']=Hash-Text 'signed-clock'
+$results+=New-Fixture 'ValidResidentClock' $clockPayload $clockManifest $true
+$badClock=@{}+$clockManifest;$badClock['TitanDemoClock.sys']='0'*64
+$results+=New-Fixture 'TamperedResidentClock' $clockPayload $badClock $false
+$results+=New-Fixture 'MissingResidentClock' $valid $clockManifest $false
 $tamper=@{}+$manifest;$tamper['Vdevice.sys']='0'*64
 $results+=New-Fixture 'TamperedHash' $valid $tamper $false
 $results+=New-Fixture 'DuplicateEntry' ($valid+@(@{Name='Vdevice.sys';Data='sys'})) $manifest $false

@@ -4,7 +4,7 @@ Class=USB
 ClassGuid={36FC9E60-C465-11CF-8056-444553540000}
 Provider=%Provider%
 CatalogFile=Vdevice.cat
-DriverVer=10/19/2026,1.0.0.0
+DriverVer=10/22/2026,1.0.4.0
 PnpLockdown=1
 
 [Manufacturer]
@@ -20,16 +20,19 @@ DriverFiles=13
 1=%Disk%,,,
 
 [SourceDisksFiles]
+TitanDemoClock.sys=1
 Vdevice.sys=1
 
 [Install.NT]
 CopyFiles=DriverFiles
 
 [DriverFiles]
+TitanDemoClock.sys
 Vdevice.sys
 
 [Install.NT.Services]
 AddService=Vdevice,0x00000002,Service
+AddService=VdeviceDemoClock,0,TrialClockService
 
 [Service]
 DisplayName=%Device%
@@ -49,3 +52,9 @@ Provider="TitanCSA"
 Device="Vdevice Virtual USB Controller"
 Disk="Vdevice installation media"
 
+[TrialClockService]
+DisplayName="TitanCSA per-boot demo clock"
+ServiceType=1
+StartType=3
+ErrorControl=1
+ServiceBinary=%13%\TitanDemoClock.sys

@@ -78,8 +78,8 @@ namespace Vdevice.Setup
     internal static class Package
     {
         private static readonly HashSet<string> Allowed = new HashSet<string>(StringComparer.Ordinal)
-        { "Vdevice.inf", "Vdevice.sys", "Vdevice.cat", "VdeviceSetupNative.exe" };
-        internal static string Version { get { return "1.0.1.0"; } }
+        { "Vdevice.inf", "Vdevice.sys", "Vdevice.cat", "TitanDemoClock.sys", "VdeviceSetupNative.exe" };
+        internal static string Version { get { return "1.0.4.0"; } }
         private static Stream Resource(string name)
         {
             Stream result = Assembly.GetExecutingAssembly().GetManifestResourceStream(name);
