@@ -14,6 +14,7 @@
 #include <softpub.h>
 #include <mscat.h>
 #include <psapi.h>
+#include <sddl.h>
 #include <algorithm>
 #include <cwctype>
 #include <fstream>
@@ -22,11 +23,80 @@
 #include <io.h>
 #include <fcntl.h>
 #include <set>
+#include <sstream>
 #include <string>
 #include <vector>
 #include "Protocol.h"
 
 namespace {
+constexpr const wchar_t* SetupKey = L"SOFTWARE\\TitanCSA\\Vdevice\\Setup";
+constexpr const wchar_t* SetupMutex = L"Global\\VdeviceSetup-Installation";
+bool journalActive = false, restartRequested = false, driverQuiesced = false;
+struct OperationLock {
+    HANDLE value = nullptr; bool acquired = false;
+    DWORD Acquire() {
+        PSECURITY_DESCRIPTOR descriptor = nullptr;
+        if (!ConvertStringSecurityDescriptorToSecurityDescriptorW(L"D:P(A;;GA;;;SY)(A;;GA;;;BA)", SDDL_REVISION_1, &descriptor, nullptr)) return GetLastError();
+        SECURITY_ATTRIBUTES security = {sizeof(security), descriptor, FALSE};
+        value = CreateMutexW(&security, FALSE, SetupMutex); DWORD error = value ? ERROR_SUCCESS : GetLastError();
+        LocalFree(descriptor); if (!value) return error;
+        DWORD wait = WaitForSingleObject(value, 0);
+        acquired = wait == WAIT_OBJECT_0 || wait == WAIT_ABANDONED;
+        return acquired ? ERROR_SUCCESS : wait == WAIT_TIMEOUT ? ERROR_INSTALL_ALREADY_RUNNING : GetLastError();
+    }
+    ~OperationLock() { if (acquired) ReleaseMutex(value); if (value) CloseHandle(value); }
+};
+std::wstring ReadJournal(const wchar_t* name) {
+    wchar_t value[1024] = {}; DWORD bytes = sizeof(value);
+    return RegGetValueW(HKEY_LOCAL_MACHINE, SetupKey, name, RRF_RT_REG_SZ, nullptr, value, &bytes) == ERROR_SUCCESS ? value : L"";
+}
+bool PendingRestart() {
+    DWORD value = 0, bytes = sizeof(value);
+    return RegGetValueW(HKEY_LOCAL_MACHINE, L"SOFTWARE\\TitanCSA\\Vdevice\\Setup\\BootSession", L"RestartRequired", RRF_RT_REG_DWORD, nullptr, &value, &bytes) == ERROR_SUCCESS && value != 0;
+}
+DWORD WriteJournal(const wchar_t* name, const std::wstring& value) {
+    HKEY key = nullptr;
+    LONG error = RegCreateKeyExW(HKEY_LOCAL_MACHINE, SetupKey, 0, nullptr, 0, KEY_SET_VALUE, nullptr, &key, nullptr);
+    if (error == ERROR_SUCCESS) { error = RegSetValueExW(key, name, 0, REG_SZ, reinterpret_cast<const BYTE*>(value.c_str()), static_cast<DWORD>((value.size() + 1) * sizeof(wchar_t))); RegCloseKey(key); }
+    return static_cast<DWORD>(error);
+}
+DWORD SaveRestart() {
+    HKEY key = nullptr;
+    LONG error = RegCreateKeyExW(HKEY_LOCAL_MACHINE, L"SOFTWARE\\TitanCSA\\Vdevice\\Setup\\BootSession", 0, nullptr, REG_OPTION_VOLATILE, KEY_SET_VALUE, nullptr, &key, nullptr);
+    if (error == ERROR_SUCCESS) { DWORD value = 1; error = RegSetValueExW(key, L"RestartRequired", 0, REG_DWORD, reinterpret_cast<const BYTE*>(&value), sizeof(value)); RegCloseKey(key); }
+    return static_cast<DWORD>(error);
+}
+void Stage(const wchar_t* text) {
+    std::wcout << L"VDEVICE_STAGE: " << text << L"\n";
+    if (journalActive) { DWORD error = WriteJournal(L"Stage", text); if (error) std::wcerr << L"Could not update setup journal: " << error << L"\n"; }
+}
+std::wstring JsonString(const std::wstring& text) {
+    std::wostringstream result; result << L'"';
+    for (wchar_t ch : text) {
+        if (ch == L'"' || ch == L'\\') result << L'\\' << ch;
+        else if (ch < 32 || ch > 126) result << L"\\u" << std::hex << std::setw(4) << std::setfill(L'0') << static_cast<unsigned>(ch) << std::dec;
+        else result << ch;
+    }
+    result << L'"'; return result.str();
+}
+struct SetupSnapshot {
+    unsigned roots = 0, started = 0, problems = 0, packages = 0;
+    bool service = false, running = false, api = false, payloadMatches = false, restart = PendingRestart(), expired = false, quiesced = false, trialStarted = false;
+    DWORD apiError = 0, imageError = 0;
+    uint64_t remainingSeconds = 0;
+};
+int FinishStatus(const SetupSnapshot& state, DWORD error) {
+    std::wcout << L"VDEVICE_STATUS: {\"Schema\":1,\"RootDevices\":" << state.roots
+        << L",\"StartedControllers\":" << state.started << L",\"ProblemControllers\":" << state.problems << L",\"StagedPackages\":" << state.packages
+        << L",\"ServiceInstalled\":" << (state.service ? L"true" : L"false") << L",\"ServiceRunning\":" << (state.running ? L"true" : L"false")
+        << L",\"ApiAvailable\":" << (state.api ? L"true" : L"false") << L",\"ApiError\":" << state.apiError << L",\"ImageError\":" << state.imageError
+        << L",\"PayloadMatches\":" << (state.payloadMatches ? L"true" : L"false") << L",\"RestartRequired\":" << (state.restart ? L"true" : L"false")
+        << L",\"TrialExpired\":" << (state.expired ? L"true" : L"false") << L",\"TrialStarted\":" << (state.trialStarted ? L"true" : L"false") << L",\"TrialRemainingSeconds\":" << state.remainingSeconds
+        << L",\"ControllerQuiesced\":" << (state.quiesced ? L"true" : L"false") << L",\"QueryError\":" << error
+        << L",\"LastOperation\":" << JsonString(ReadJournal(L"Operation")) << L",\"LastStage\":" << JsonString(ReadJournal(L"Stage"))
+        << L",\"LastState\":" << JsonString(ReadJournal(L"State")) << L",\"LastExitCode\":" << JsonString(ReadJournal(L"ExitCode")) << L"}\n";
+    return static_cast<int>(error);
+}
 struct DeviceSet {
     HDEVINFO value = INVALID_HANDLE_VALUE;
     ~DeviceSet() { if (value != INVALID_HANDLE_VALUE) SetupDiDestroyDeviceInfoList(value); }
@@ -291,21 +361,35 @@ DWORD QuiesceDriver() {
     std::wcout << L"Virtual devices stopped and pending application requests completed. Closing the setup control handle before Windows PnP removal.\n";
     return ERROR_SUCCESS;
 }
+DWORD OwnedPackages(std::set<std::wstring>& packages) {
+    wchar_t windows[MAX_PATH] = {};
+    if (!GetWindowsDirectoryW(windows, MAX_PATH)) return GetLastError();
+    WIN32_FIND_DATAW found = {}; std::wstring directory = std::wstring(windows) + L"\\INF\\";
+    HANDLE search = FindFirstFileW((directory + L"oem*.inf").c_str(), &found);
+    if (search == INVALID_HANDLE_VALUE) { DWORD error = GetLastError(); return error == ERROR_FILE_NOT_FOUND ? ERROR_SUCCESS : error; }
+    do { if (!(found.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) && IsOwnInf(directory + found.cFileName)) packages.insert(Lower(found.cFileName)); } while (FindNextFileW(search, &found));
+    DWORD error = GetLastError(); FindClose(search);
+    return error == ERROR_NO_MORE_FILES ? ERROR_SUCCESS : error;
+}
 int Status(const std::wstring& expectedImage = L"") {
+    Stage(L"Reading Windows installation state");
+    SetupSnapshot snapshot;
+    auto finish = [&](DWORD error) { return FinishStatus(snapshot, error); };
     DeviceSet set; set.value = SetupDiGetClassDevsW(nullptr, nullptr, nullptr, DIGCF_ALLCLASSES);
-    if (set.value == INVALID_HANDLE_VALUE) return Failure(L"Enumerate Windows devices", GetLastError());
-    unsigned matches = 0; bool pnpProblem = false;
+    if (set.value == INVALID_HANDLE_VALUE) { DWORD error = GetLastError(); Failure(L"Enumerate Windows devices", error); return finish(error); }
     for (DWORD index = 0;; ++index) {
         SP_DEVINFO_DATA device = {}; device.cbSize = sizeof(device);
         if (!SetupDiEnumDeviceInfo(set.value, index, &device)) {
-            if (GetLastError() != ERROR_NO_MORE_ITEMS) return Failure(L"Read device inventory", GetLastError());
+            if (GetLastError() != ERROR_NO_MORE_ITEMS) { DWORD error = GetLastError(); Failure(L"Read device inventory", error); return finish(error); }
             break;
         }
         if (!Matches(set.value, device)) continue;
-        ++matches; wchar_t instance[MAX_DEVICE_ID_LEN] = {}; DWORD state = 0, problem = 0;
+        ++snapshot.roots; wchar_t instance[MAX_DEVICE_ID_LEN] = {}; DWORD state = 0, problem = 0;
         SetupDiGetDeviceInstanceIdW(set.value, &device, instance, MAX_DEVICE_ID_LEN, nullptr);
         CONFIGRET cr = CM_Get_DevNode_Status(&state, &problem, device.DevInst, 0);
-        pnpProblem = pnpProblem || cr != CR_SUCCESS || problem != 0;
+        if (cr == CR_SUCCESS && (state & DN_STARTED) && !problem) ++snapshot.started;
+        else ++snapshot.problems;
+        snapshot.restart = snapshot.restart || problem == CM_PROB_NEED_RESTART;
         std::wcout << L"Root device: " << instance << L"\nDriver INF: " << InfName(set.value, device)
             << L"\nPnP status: " << (cr == CR_SUCCESS ? L"available" : L"not present")
             << L"; problem code: " << problem << L"\n";
@@ -317,15 +401,24 @@ int Status(const std::wstring& expectedImage = L"") {
                 << L" — " << NtStatusText(problemStatus) << L"\n";
         else std::wcout << L"PnP problem status: unavailable (Configuration Manager " << propertyResult << L")\n";
     }
-    std::wcout << L"Root devices: " << matches << L"\n";
+    std::set<std::wstring> packages;
+    DWORD packageError = OwnedPackages(packages);
+    if (packageError) { Failure(L"Read owned driver packages", packageError); return finish(packageError); }
+    snapshot.packages = static_cast<unsigned>(packages.size());
+    std::wcout << L"Root devices: " << snapshot.roots << L"; owned driver packages: " << snapshot.packages << L"\n";
     ImageState configured;
     SC_HANDLE scm = OpenSCManagerW(nullptr, nullptr, SC_MANAGER_CONNECT);
-    if (scm) {
+    if (!scm) { DWORD error = GetLastError(); Failure(L"Read Windows service manager", error); return finish(error); }
+    DWORD serviceError = ERROR_SUCCESS;
+    {
         SC_HANDLE service = OpenServiceW(scm, VD_SERVICE, SERVICE_QUERY_STATUS | SERVICE_QUERY_CONFIG);
         if (service) {
+            snapshot.service = true;
             SERVICE_STATUS_PROCESS state = {}; DWORD bytes = 0;
-            if (QueryServiceStatusEx(service, SC_STATUS_PROCESS_INFO, reinterpret_cast<BYTE*>(&state), sizeof(state), &bytes))
+            if (QueryServiceStatusEx(service, SC_STATUS_PROCESS_INFO, reinterpret_cast<BYTE*>(&state), sizeof(state), &bytes)) {
+                snapshot.running = state.dwCurrentState == SERVICE_RUNNING;
                 std::wcout << L"Service: " << (state.dwCurrentState == SERVICE_RUNNING ? L"running" : L"not running") << L"\n";
+            } else serviceError = GetLastError();
             DWORD configBytes = 0;
             QueryServiceConfigW(service, nullptr, 0, &configBytes);
             if (configBytes && configBytes <= 65536) {
@@ -334,26 +427,41 @@ int Status(const std::wstring& expectedImage = L"") {
                 if (QueryServiceConfigW(service, info, configBytes, &configBytes) && info->lpBinaryPathName) configured = PrintImage(L"Configured service image: ", info->lpBinaryPathName);
             }
             CloseServiceHandle(service);
-        } else std::wcout << L"Service: absent (" << GetLastError() << L")\n";
+        } else {
+            serviceError = GetLastError(); std::wcout << L"Service: unavailable (" << serviceError << L")\n";
+            if (serviceError == ERROR_SERVICE_MARKED_FOR_DELETE) { snapshot.service = true; snapshot.restart = true; serviceError = ERROR_SUCCESS; }
+            else if (serviceError == ERROR_SERVICE_DOES_NOT_EXIST) serviceError = ERROR_SUCCESS;
+        }
         CloseServiceHandle(scm);
     }
+    if (serviceError) { Failure(L"Read Vdevice service", serviceError); return finish(serviceError); }
     auto loaded = LoadedImages(); DWORD imageStatus = ERROR_SUCCESS;
     if (!expectedImage.empty()) {
         std::wstring expected; DWORD hashError = 0;
-        if (!FileSha256(expectedImage, expected, hashError)) return Failure(L"Hash the bundled SYS for comparison", hashError);
+        if (!FileSha256(expectedImage, expected, hashError)) { Failure(L"Hash the bundled SYS for comparison", hashError); return finish(hashError); }
         std::wcout << L"Bundled SYS SHA-256: " << expected << L"\n";
-        imageStatus = CompareImages(expected, configured, loaded);
+        if (snapshot.service || snapshot.roots || !loaded.empty()) imageStatus = CompareImages(expected, configured, loaded);
+        snapshot.payloadMatches = !configured.sha256.empty() && configured.sha256 == expected && !loaded.empty()
+            && std::all_of(loaded.begin(), loaded.end(), [&](const ImageState& image) { return image.sha256 == expected; });
     }
+    snapshot.imageError = imageStatus;
+    snapshot.restart = snapshot.restart || imageStatus == ERROR_SUCCESS_REBOOT_REQUIRED;
     Handle api; api.value = CreateFileW(VD_PATH, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE,
         nullptr, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, nullptr);
     if (api.value == INVALID_HANDLE_VALUE) {
-        DWORD error = GetLastError(); std::wcout << L"Driver API: unavailable (" << error << L"): " << ErrorText(error) << L"\n";
-        return imageStatus ? static_cast<int>(imageStatus) : matches ? 1 : 2;
+        snapshot.apiError = GetLastError(); std::wcout << L"Driver API: unavailable (" << snapshot.apiError << L"): " << ErrorText(snapshot.apiError) << L"\n";
+        if (!snapshot.roots && !snapshot.service && !snapshot.packages && loaded.empty()
+            && (snapshot.apiError == ERROR_FILE_NOT_FOUND || snapshot.apiError == ERROR_PATH_NOT_FOUND)) {
+            std::wcout << L"Installation: not installed.\n";
+            return finish(snapshot.restart ? ERROR_SUCCESS_REBOOT_REQUIRED : ERROR_SUCCESS);
+        }
+        return finish(snapshot.restart ? ERROR_SUCCESS_REBOOT_REQUIRED : imageStatus ? imageStatus : snapshot.apiError);
     }
     VD_INFO info = {}; DWORD bytes = 0;
     DWORD queryError = TimedControl(api.value, VD_QUERY, &info, sizeof(info), bytes);
-    if (queryError != ERROR_SUCCESS) return Failure(L"Query driver API", queryError);
-    if (bytes != sizeof(info) || info.Version != VD_VERSION) return Failure(L"Driver ABI mismatch", ERROR_REVISION_MISMATCH);
+    if (queryError != ERROR_SUCCESS) { snapshot.apiError = queryError; Failure(L"Query driver API", queryError); return finish(queryError); }
+    if (bytes != sizeof(info) || info.Version != VD_VERSION) { snapshot.apiError = ERROR_REVISION_MISMATCH; Failure(L"Driver ABI mismatch", snapshot.apiError); return finish(snapshot.apiError); }
+    snapshot.api = true; snapshot.expired = info.TrialExpired != 0; snapshot.trialStarted = info.TrialStarted100ns != 0; snapshot.remainingSeconds = info.TrialRemaining100ns / 10000000u;
     std::wcout << L"Driver API: responding; ABI " << info.Version << L"\nMaximum devices: " << info.MaxDevices
         << L"\nMaximum report bytes: " << info.MaxTransfer << L"\nUSB speeds: low=" << info.LowSpeed
         << L", full=" << info.FullSpeed << L", high=" << info.HighSpeed << L"\n";
@@ -361,11 +469,13 @@ int Status(const std::wstring& expectedImage = L"") {
     else if (info.TrialStarted100ns) std::wcout << L"Demo remaining: " << info.TrialRemaining100ns / 10000000u << L" seconds\n";
     else std::wcout << L"Demo: starts with the first successful virtual-device creation.\n";
     if (info.Reserved2) {
+        snapshot.quiesced = true; snapshot.restart = true;
         std::wcout << L"Controller state: " << (info.Reserved2 == 1 ? L"quiescing" : L"removing")
             << L"; new virtual devices and reports are disabled. Close applications using Vdevice and finish uninstall; restart/reinstall to resume.\n";
-        return ERROR_NOT_READY;
+        return finish(ERROR_NOT_READY);
     }
-    return pnpProblem ? 1 : static_cast<int>(imageStatus);
+    if (snapshot.restart) return finish(ERROR_SUCCESS_REBOOT_REQUIRED);
+    return finish(snapshot.problems ? ERROR_NOT_READY : imageStatus ? imageStatus : !snapshot.running || !snapshot.started ? ERROR_SERVICE_NOT_ACTIVE : ERROR_SUCCESS);
 }
 // /install deliberately means reinstall this exact bundled package, including
 // when Windows ranks an already-installed development package above it.
@@ -385,6 +495,7 @@ DWORD StagePackage(const std::wstring& inf, BOOL& reboot,
     return ERROR_SUCCESS;
 }
 int Install(const std::wstring& path) {
+    Stage(L"Verifying the signed driver package");
     wchar_t absolute[32768] = {};
     if (!GetFullPathNameW(path.c_str(), 32768, absolute, nullptr)) return Failure(L"Resolve INF path", GetLastError());
     std::wstring inf = absolute;
@@ -400,7 +511,9 @@ int Install(const std::wstring& path) {
     BOOL reboot = FALSE;
     std::wcout << L"Installing verified driver package...\n";
     DWORD stageError = StagePackage(inf, reboot);
+    restartRequested = restartRequested || reboot != FALSE;
     if (stageError != ERROR_SUCCESS) return Failure(L"Stage driver package for reinstall", stageError);
+    Stage(L"Preparing the Vdevice root controller");
     DeviceSet existing; existing.value = SetupDiGetClassDevsW(nullptr, nullptr, nullptr, DIGCF_ALLCLASSES);
     if (existing.value == INVALID_HANDLE_VALUE) return Failure(L"Enumerate existing devices", GetLastError());
     bool found = false;
@@ -427,11 +540,18 @@ int Install(const std::wstring& path) {
         registered = true;
     }
     BOOL bindReboot = FALSE;
+    Stage(L"Binding the verified driver to the root controller");
     if (!UpdateDriverForPlugAndPlayDevicesW(nullptr, VD_HARDWARE_ID, inf.c_str(), INSTALLFLAG_FORCE, &bindReboot)) {
         DWORD error = GetLastError();
-        if (registered) { BOOL cleanupReboot = FALSE; DiUninstallDevice(nullptr, created.value, &device, 0, &cleanupReboot); }
+        restartRequested = restartRequested || bindReboot != FALSE;
+        if (registered) {
+            BOOL cleanupReboot = FALSE;
+            if (!DiUninstallDevice(nullptr, created.value, &device, 0, &cleanupReboot)) Failure(L"Roll back the new root device; the verified package is retained for repair", GetLastError());
+            restartRequested = restartRequested || cleanupReboot != FALSE;
+        }
         return Failure(L"Bind Vdevice driver", error);
     }
+    restartRequested = restartRequested || bindReboot != FALSE;
     std::wcout << L"Windows completed the package-binding step; checking the actual SYS files...\n";
     int verification = Status(inf.substr(0, slash + 1) + L"Vdevice.sys");
     if (verification == ERROR_REVISION_MISMATCH) return verification;
@@ -442,9 +562,53 @@ int Install(const std::wstring& path) {
     if (verification == ERROR_SUCCESS) std::wcout << L"Vdevice driver package and active root controller installed and verified.\n";
     return verification;
 }
+bool OwnServiceImage(const std::wstring& rawPath) {
+    wchar_t windows[MAX_PATH] = {};
+    if (!GetWindowsDirectoryW(windows, MAX_PATH)) return false;
+    std::wstring path = Lower(ImagePath(rawPath));
+    std::wstring prefix = Lower(std::wstring(windows)) + L"\\system32\\driverstore\\filerepository\\vdevice.inf_";
+    if (path.find(prefix) != 0) return false;
+    size_t slash = path.find(L'\\', prefix.size());
+    return slash != std::wstring::npos && slash > prefix.size() && path.substr(slash) == L"\\vdevice.sys";
+}
+DWORD CheckService(bool remove) {
+    SC_HANDLE manager = OpenSCManagerW(nullptr, nullptr, SC_MANAGER_CONNECT);
+    if (!manager) return GetLastError();
+    SC_HANDLE service = OpenServiceW(manager, VD_SERVICE, SERVICE_QUERY_CONFIG | SERVICE_QUERY_STATUS | (remove ? DELETE : 0));
+    DWORD error = service ? ERROR_SUCCESS : GetLastError(); CloseServiceHandle(manager);
+    if (!service) {
+        if (error == ERROR_SERVICE_MARKED_FOR_DELETE) { restartRequested = true; return ERROR_SUCCESS; }
+        return error == ERROR_SERVICE_DOES_NOT_EXIST ? ERROR_SUCCESS : error;
+    }
+    DWORD bytes = 0; QueryServiceConfigW(service, nullptr, 0, &bytes);
+    if (!bytes || bytes > 65536) { error = GetLastError(); CloseServiceHandle(service); return error ? error : ERROR_INVALID_DATA; }
+    std::vector<BYTE> buffer(bytes, 0); auto config = reinterpret_cast<QUERY_SERVICE_CONFIGW*>(buffer.data());
+    if (!QueryServiceConfigW(service, config, bytes, &bytes)) { error = GetLastError(); CloseServiceHandle(service); return error; }
+    if (config->dwServiceType != SERVICE_KERNEL_DRIVER || !config->lpBinaryPathName || !OwnServiceImage(config->lpBinaryPathName)) {
+        CloseServiceHandle(service); std::wcerr << L"A service named Vdevice points outside the owned driver package. It was retained.\n"; return ERROR_INVALID_DATA;
+    }
+    if (remove) {
+        SERVICE_STATUS_PROCESS status = {}; bytes = 0;
+        if (!QueryServiceStatusEx(service, SC_STATUS_PROCESS_INFO, reinterpret_cast<BYTE*>(&status), sizeof(status), &bytes)) { error = GetLastError(); CloseServiceHandle(service); return error; }
+        if (!DeleteService(service)) {
+            error = GetLastError(); if (error == ERROR_SERVICE_MARKED_FOR_DELETE) { restartRequested = true; error = ERROR_SUCCESS; }
+        }
+        if (!error) {
+            restartRequested = restartRequested || status.dwCurrentState != SERVICE_STOPPED;
+            std::wcout << L"Removed the owned Vdevice service registration" << (restartRequested ? L"; Windows may finish after restart" : L"") << L".\n";
+        }
+    }
+    CloseServiceHandle(service); return error;
+}
 int Uninstall() {
+    Stage(L"Verifying ownership of the Vdevice service");
+    DWORD serviceError = CheckService(false);
+    if (serviceError) return Failure(L"Verify the service before removal", serviceError);
+    Stage(L"Preparing virtual devices for safe removal");
     DWORD quiesce = QuiesceDriver();
     if (quiesce != ERROR_SUCCESS) return Failure(L"Prepare the driver for removal", quiesce);
+    driverQuiesced = true;
+    Stage(L"Removing owned Vdevice root controllers");
     std::wcout << L"Enumerating only Vdevice root controllers and their owned packages...\n";
     DeviceSet set; set.value = SetupDiGetClassDevsW(nullptr, nullptr, nullptr, DIGCF_ALLCLASSES);
     if (set.value == INVALID_HANDLE_VALUE) return Failure(L"Enumerate Vdevice controllers", GetLastError());
@@ -466,23 +630,18 @@ int Uninstall() {
         SetupDiGetDeviceInstanceIdW(set.value, &item, instance, MAX_DEVICE_ID_LEN, nullptr);
         std::wcout << L"Requesting Windows PnP removal: " << instance << L". Windows may require a restart if applications retain controller handles.\n";
         BOOL needed = FALSE;
-        if (!DiUninstallDevice(nullptr, set.value, &item, 0, &needed)) return Failure(L"Remove Vdevice root controller", GetLastError());
+        if (!DiUninstallDevice(nullptr, set.value, &item, 0, &needed)) { restartRequested = restartRequested || needed != FALSE; return Failure(L"Remove Vdevice root controller", GetLastError()); }
         reboot = reboot || needed != FALSE;
+        restartRequested = restartRequested || needed != FALSE;
         std::wcout << L"PnP removal request completed; restart required: " << (needed ? L"yes" : L"no") << L"\n";
     }
     wchar_t windows[MAX_PATH] = {};
     if (!GetWindowsDirectoryW(windows, MAX_PATH)) return Failure(L"Find Windows INF directory", GetLastError());
     // An earlier failed install can leave a staged package without any root
     // device. Include those owned packages while leaving unrelated INFs alone.
-    WIN32_FIND_DATAW found = {};
-    std::wstring infDirectory = std::wstring(windows) + L"\\INF\\";
-    HANDLE search = FindFirstFileW((infDirectory + L"oem*.inf").c_str(), &found);
-    if (search != INVALID_HANDLE_VALUE) {
-        do {
-            if (!(found.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) && IsOwnInf(infDirectory + found.cFileName)) packages.insert(Lower(found.cFileName));
-        } while (FindNextFileW(search, &found));
-        FindClose(search);
-    }
+    DWORD packageError = OwnedPackages(packages);
+    if (packageError) return Failure(L"Read remaining owned packages", packageError);
+    Stage(L"Removing only confirmed Vdevice driver packages");
     for (const auto& inf : packages) {
         std::wstring full = std::wstring(windows) + L"\\INF\\" + inf;
         if (!IsOwnInf(full)) { std::wcout << L"Package retained: ownership could not be confirmed for " << inf << L"\n"; continue; }
@@ -498,6 +657,9 @@ int Uninstall() {
         std::wcout << L"Removed package: " << inf << L"\n";
     }
     std::wcout << L"Removed Vdevice root controllers: " << devices.size() << L"\n";
+    Stage(L"Removing the owned Vdevice service registration");
+    serviceError = CheckService(true);
+    if (serviceError) return Failure(L"Remove the owned Vdevice service", serviceError);
     if (reboot) { std::wcout << L"A Windows restart is required.\n"; return ERROR_SUCCESS_REBOOT_REQUIRED; }
     return 0;
 }
@@ -509,8 +671,31 @@ int wmain(int argc, wchar_t** argv) {
     std::wcerr << std::unitbuf;
     try {
     if ((argc == 2 || argc == 3) && (_wcsicmp(argv[1], L"/status") == 0 || _wcsicmp(argv[1], L"/diagnose") == 0)) return Status(argc == 3 ? argv[2] : L"");
-    if (argc == 2 && _wcsicmp(argv[1], L"/uninstall") == 0) return Uninstall();
-    if (argc == 3 && _wcsicmp(argv[1], L"/install") == 0) return Install(argv[2]);
+    bool install = argc == 3 && _wcsicmp(argv[1], L"/install") == 0;
+    bool uninstall = argc == 2 && _wcsicmp(argv[1], L"/uninstall") == 0;
+    if (install || uninstall) {
+        OperationLock operation; DWORD error = operation.Acquire();
+        if (error) return Failure(L"Another Vdevice installer is active; wait for it to finish", error);
+        error = WriteJournal(L"Operation", install ? L"Install" : L"Uninstall");
+        if (!error) error = WriteJournal(L"ExitCode", L"");
+        if (!error) error = WriteJournal(L"State", L"Running");
+        if (error) return Failure(L"Create the protected setup journal before changing Windows", error);
+        journalActive = true; restartRequested = PendingRestart();
+        int result;
+        try { result = install ? Install(argv[2]) : Uninstall(); }
+        catch (const std::exception&) { result = Failure(L"Setup could not allocate or process its working data", ERROR_NOT_ENOUGH_MEMORY); }
+        restartRequested = restartRequested || result == ERROR_SUCCESS_REBOOT_REQUIRED || (driverQuiesced && result != ERROR_SUCCESS);
+        if (restartRequested) {
+            error = SaveRestart();
+            if (error) { Failure(L"Remember the restart request", error); if (result == ERROR_SUCCESS || result == ERROR_SUCCESS_REBOOT_REQUIRED) result = static_cast<int>(error); }
+            std::wcout << L"VDEVICE_RESTART_REQUIRED: true\n";
+            if (result == ERROR_SUCCESS) result = ERROR_SUCCESS_REBOOT_REQUIRED;
+        }
+        error = WriteJournal(L"ExitCode", std::to_wstring(result));
+        if (!error) error = WriteJournal(L"State", result == ERROR_SUCCESS || result == ERROR_SUCCESS_REBOOT_REQUIRED ? L"Completed" : L"Failed");
+        if (error) { Failure(L"Save the final setup result", error); if (result == ERROR_SUCCESS) result = static_cast<int>(error); }
+        return result;
+    }
     std::wcout << L"Vdevice native setup helper\n/install <Vdevice.inf> | /uninstall | /status [expected Vdevice.sys]\n";
     return argc == 2 && (wcscmp(argv[1], L"/?") == 0 || wcscmp(argv[1], L"--help") == 0) ? 0 : ERROR_INVALID_PARAMETER;
     } catch (const std::exception&) { return Failure(L"Setup could not allocate or process its working data", ERROR_NOT_ENOUGH_MEMORY); }

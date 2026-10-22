@@ -18,7 +18,8 @@ Screenshots show offline previews of the applications, not hardware tests.
 ## Install and try
 
 1. Download **VdeviceSetup.exe** from the latest release and accept elevation.
-2. Choose **Install / update** and restart Windows if requested.
+2. Choose **Install** or **Reinstall / repair**. Wait for **Installed and ready**;
+   if Windows requests a restart, save your work and use **Restart Windows**.
 3. Extract the release's **Vdevice-Examples** ZIP and open a control panel.
 4. Accept the administrator prompt on opening the example, then click **Create device** and wait for **READY**.
 5. Change fields and press **Send state**. **Release / neutral** releases held
@@ -37,7 +38,10 @@ The console installer provides the same installation backend:
 .\VdeviceSetupConsole.exe /uninstall
 ```
 
-Exit code `3010` requests a restart. The GUI also supports removal. The driver
+The GUI reads installation, service and API state on opening and after each
+operation. A **Restart Windows** button appears when a restart is required and
+asks for confirmation. Exit code `3010` requests a restart; `1618` means another
+Vdevice setup is already running. The GUI also supports removal. The driver
 package is Microsoft-signed; installer and example EXEs have their own signature
 status. [Installation and diagnostics](docs/INSTALLATION.md).
 

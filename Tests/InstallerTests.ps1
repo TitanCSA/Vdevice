@@ -64,6 +64,8 @@ $results+=New-Fixture 'UnknownFile' ($valid+@(@{Name='unexpected.dll';Data='bad'
 $results+=New-Fixture 'MissingFile' @($valid[0],$valid[1]) $manifest $false
 $empty=@($valid[0],@{Name='Vdevice.sys';Data=''},$valid[2]);$emptyHashes=@{}+$manifest;$emptyHashes['Vdevice.sys']=Hash-Text ''
 $results+=New-Fixture 'EmptyFile' $empty $emptyHashes $false
+$invalidHash=@{}+$manifest;$invalidHash['Vdevice.sys']='Z'*64
+$results+=New-Fixture 'InvalidHashEncoding' $valid $invalidHash $false
 
 # Reflection deliberately bypasses the executable UAC manifest for entry points
 # that only print help/validate resources. Never invoke install/uninstall here.
@@ -87,6 +89,12 @@ foreach($relative in @('InstallerUI\MainWindow.xaml','ExamplesUI\MainWindow.xaml
     try{$view=[Windows.Markup.XamlReader]::Load($stream);if(!$view){throw "Empty view: $relative"}}finally{$stream.Dispose()}
     $results+=[pscustomobject]@{name=('XAML '+$relative);passed=$true}
 }
+$stateTest=Join-Path $OutputDirectory 'InstallerStateTests.exe'
+Build-VdeviceManaged -Output $stateTest -Sources @((Join-Path $PSScriptRoot 'InstallerStateTests.cs')) -Resources @() -Wpf -Console
+$stateAssembly=[Reflection.Assembly]::LoadFile($stateTest)
+$arguments=[object[]]::new(1);$arguments[0]=[string[]]@((Join-Path $root 'bin\InstallerUI\VdeviceSetup.exe'))
+if([int]$stateAssembly.EntryPoint.Invoke($null,$arguments) -ne 0){throw 'Installer state/process/UI tests failed.'}
+$results+=[pscustomobject]@{name='Installation states, real UI, restart persistence and process output';passed=$true}
 $report=[ordered]@{passed=$true;installedAnything=$false;createdVirtualDevices=$false;testCount=$results.Count;tests=$results}
 $report|ConvertTo-Json -Depth 5|Set-Content -LiteralPath (Join-Path $OutputDirectory 'results.json') -Encoding UTF8
 Write-Host "$($results.Count) offline installer/UI checks passed. No driver installation or device creation."

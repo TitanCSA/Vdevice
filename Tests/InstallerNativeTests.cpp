@@ -31,6 +31,15 @@ int wmain(int argc, wchar_t** argv) {
         "[Models.NTamd64]\r\nDevice=Install,ROOT\\Vdevice\r\n"
         "[Install.NT.Services]\r\nAddService=Vdevice,2,Service\r\n";
     int failures = 0;
+    wchar_t windows[MAX_PATH] = {};
+    if (!GetWindowsDirectoryW(windows, MAX_PATH)) return 1;
+    const std::wstring repository = std::wstring(windows) + L"\\System32\\DriverStore\\FileRepository\\";
+    if (!OwnServiceImage(repository + L"vdevice.inf_amd64_abcd\\Vdevice.sys")) ++failures;
+    if (!OwnServiceImage(L"\\SystemRoot\\System32\\DriverStore\\FileRepository\\vdevice.inf_amd64_abcd\\Vdevice.sys")) ++failures;
+    if (OwnServiceImage(repository + L"other.inf_amd64_abcd\\Vdevice.sys")) ++failures;
+    if (OwnServiceImage(repository + L"vdevice.inf_amd64_abcd\\Other.sys")) ++failures;
+    if (OwnServiceImage(repository + L"vdevice.inf_amd64_abcd\\..\\Other\\Vdevice.sys")) ++failures;
+    if (OwnServiceImage(L"C:\\Users\\Public\\Vdevice.sys")) ++failures;
     auto check = [&](const std::string& text, bool expected) {
         if (!Write(fixture, text) || IsOwnInf(fixture.wstring()) != expected) ++failures;
     };

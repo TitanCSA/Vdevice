@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Text;
 using System.Threading;
@@ -9,6 +10,7 @@ using System.Windows.Controls;
 using System.Windows.Markup;
 using System.Windows.Media.Animation;
 using System.Windows.Media;
+using System.Web.Script.Serialization;
 
 namespace Vdevice.Setup
 {
@@ -17,24 +19,72 @@ namespace Vdevice.Setup
         private readonly TextBox log;
         private readonly TextBlock status;
         private readonly ProgressBar progress;
-        private readonly Button install, uninstall, diagnose, refresh;
-        private bool busy;
-        internal SetupWindow()
+        private readonly Button install, uninstall, diagnose, refresh, reboot;
+        private readonly TextBlock installationState, installationDetail, driverState, driverDetail, apiState, apiDetail;
+        private bool busy, restartNeeded;
+        private SetupSnapshot snapshot;
+        internal SetupWindow() : this(true) { }
+        internal SetupWindow(bool automaticStatus)
         {
             using (Stream input = typeof(SetupWindow).Assembly.GetManifestResourceStream("MainWindow.xaml")) Content = XamlReader.Load(input);
-            Title = "Vdevice — Virtual USB Device Driver"; Width = 1080; Height = 760; MinWidth = 840; MinHeight = 620;
+            Title = "Vdevice — Virtual USB Device Driver Setup"; Width = 1120; Height = 780; MinWidth = 880; MinHeight = 660;
+            FontFamily = new FontFamily("Segoe UI");
             WindowStartupLocation = WindowStartupLocation.CenterScreen;
             FrameworkElement root = (FrameworkElement)Content;
             log = (TextBox)root.FindName("Log"); status = (TextBlock)root.FindName("Status"); progress = (ProgressBar)root.FindName("Progress");
             install = (Button)root.FindName("Install"); uninstall = (Button)root.FindName("Uninstall");
             diagnose = (Button)root.FindName("Diagnose"); refresh = (Button)root.FindName("Refresh");
+            reboot = (Button)root.FindName("RebootButton");
+            installationState = (TextBlock)root.FindName("InstallationState"); installationDetail = (TextBlock)root.FindName("InstallationDetail");
+            driverState = (TextBlock)root.FindName("DriverState"); driverDetail = (TextBlock)root.FindName("DriverDetail");
+            apiState = (TextBlock)root.FindName("ApiState"); apiDetail = (TextBlock)root.FindName("ApiDetail");
             install.Click += async delegate { await Run("/install"); };
             uninstall.Click += async delegate { await Run("/uninstall"); };
-            diagnose.Click += delegate { new DiagnosticWindow { Owner = this }.ShowDialog(); };
+            diagnose.Click += async delegate { new DiagnosticWindow { Owner = this }.ShowDialog(); await Run("/status"); };
             refresh.Click += async delegate { await Run("/status"); };
             ((Button)root.FindName("Copy")).Click += delegate { Copy(); };
+            reboot.Click += delegate { Restart(); };
             Closing += OnClosing;
-            Loaded += async delegate { await Run("/status"); };
+            if (automaticStatus) Loaded += async delegate { await Run("/status"); };
+        }
+        internal void ApplyResult(SetupResult result, string operation)
+        {
+            snapshot = result.Snapshot;
+            restartNeeded = restartNeeded || result.RebootRequired;
+            reboot.Visibility = restartNeeded ? Visibility.Visible : Visibility.Collapsed;
+            if (snapshot == null)
+            {
+                installationState.Text = "Status unavailable"; installationDetail.Text = "The Windows state could not be verified. Read the report below.";
+                driverState.Text = apiState.Text = "Not verified"; driverDetail.Text = apiDetail.Text = "Refresh status or run diagnostics.";
+            }
+            else
+            {
+                installationState.Text = snapshot.InstallationText;
+                installationDetail.Text = snapshot.RootDevices + " root controller(s) · " + snapshot.StagedPackages + " driver package(s)";
+                driverState.Text = snapshot.ServiceRunning ? "Running" : snapshot.ServiceInstalled ? "Stopped" : "Not installed";
+                driverDetail.Text = snapshot.PayloadMatches ? "Active and configured SYS files match this package." : snapshot.Installed ? "Driver identity is not fully verified. See diagnostics." : "No active Vdevice service.";
+                apiState.Text = snapshot.ControllerQuiesced ? "Paused for removal" : snapshot.ApiAvailable ? "Responding" : "Unavailable";
+                apiDetail.Text = snapshot.TrialExpired ? "Demo expired. Restart Windows for another two-hour session."
+                    : snapshot.ApiAvailable ? snapshot.TrialStarted ? "Demo remaining: " + TimeSpan.FromSeconds(snapshot.TrialRemainingSeconds).ToString(@"hh\:mm\:ss") : "Demo starts when you create a virtual device."
+                    : snapshot.ApiError != 0 ? "Windows error " + snapshot.ApiError + ". No virtual device was created by this check."
+                    : "Check incomplete · Windows error " + snapshot.QueryError + ". See the detailed report.";
+                if (snapshot.LastState == "Failed" || snapshot.LastState == "Running")
+                    log.AppendText("Previous setup: " + snapshot.LastOperation + " · " + snapshot.LastState + " · " + snapshot.LastStage + " · exit " + snapshot.LastExitCode + Environment.NewLine);
+            }
+            install.Content = snapshot != null && snapshot.Installed ? "Reinstall / repair" : "Install";
+            status.Text = !result.Success ? "Operation failed · Windows error " + result.ExitCode + ". Read the failed stage below."
+                : operation == "/status" ? "Installation status read directly from Windows." : "Operation completed and Windows state checked.";
+            if (restartNeeded) status.Text += " Save your work, then restart Windows to finish.";
+            if (snapshot != null && snapshot.LastState == "Running") status.Text += " A setup operation is running or was interrupted; check the recorded stage.";
+        }
+        private void Restart()
+        {
+            if (busy || !restartNeeded || MessageBox.Show(this, "Save your work before continuing. Restart Windows now?", "Vdevice", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
+            try
+            {
+                Process.Start(new ProcessStartInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "shutdown.exe"), "/r /t 0 /d p:4:1") { UseShellExecute = false, CreateNoWindow = true });
+            }
+            catch (Exception error) { log.AppendText("Could not restart Windows: " + error.Message + Environment.NewLine); status.Text = "Restart failed. You can restart Windows from the Start menu."; }
         }
         private void Copy()
         {
@@ -48,7 +98,7 @@ namespace Vdevice.Setup
         private async Task Run(string operation)
         {
             if (busy) return;
-            busy = true; install.IsEnabled = uninstall.IsEnabled = diagnose.IsEnabled = refresh.IsEnabled = false;
+            busy = true; install.IsEnabled = uninstall.IsEnabled = diagnose.IsEnabled = refresh.IsEnabled = reboot.IsEnabled = false;
             log.Clear(); progress.BeginAnimation(ProgressBar.ValueProperty, null); progress.Value = 0;
             status.Text = "Working…";
             try
@@ -66,10 +116,10 @@ namespace Vdevice.Setup
                         }));
                     }, CancellationToken.None);
                 });
-                status.Text = result.RebootRequired ? "Completed — restart Windows to finish." : result.Success ? "Completed successfully." : "Needs attention — read the detailed report below.";
+                ApplyResult(result, operation);
             }
             catch (Exception error) { log.AppendText("ERROR: " + error.Message + Environment.NewLine); status.Text = "Operation failed."; }
-            finally { busy = false; install.IsEnabled = uninstall.IsEnabled = diagnose.IsEnabled = refresh.IsEnabled = true; }
+            finally { busy = false; install.IsEnabled = diagnose.IsEnabled = refresh.IsEnabled = reboot.IsEnabled = true; uninstall.IsEnabled = snapshot != null && (snapshot.Installed || restartNeeded); }
         }
     }
     internal sealed class DiagnosticWindow : Window
@@ -118,6 +168,7 @@ namespace Vdevice.Setup
                         }, CancellationToken.None);
                     });
                     state.Text = result.Success ? "Checks completed. The report explains what was and was not verified." : "An error needs attention. Copy the report for troubleshooting.";
+                    if (result.RebootRequired) state.Text += " Restart Windows to finish the pending operation.";
                 }
                 catch (Exception error) { report.AppendText("ERROR: " + error.Message); state.Text = "The check failed."; }
                 finally { busy = false; }
@@ -129,6 +180,18 @@ namespace Vdevice.Setup
         [STAThread]
         private static int Main(string[] args)
         {
+            if ((args.Length == 2 && args[0] == "--snapshot") || (args.Length == 3 && args[0] == "--action"))
+            {
+                try
+                {
+                    string operation = args[0] == "--snapshot" ? "/status" : args[1];
+                    SetupResult result = Package.Run(operation, null, CancellationToken.None);
+                    string path = args[args.Length - 1];
+                    string json = new JavaScriptSerializer().Serialize(new { exitCode = result.ExitCode, rebootRequired = result.RebootRequired, installation = result.Snapshot == null ? "Status unavailable" : result.Snapshot.InstallationText, snapshot = result.Snapshot, report = result.Report });
+                    File.WriteAllText(path, json, new UTF8Encoding(false)); return result.ExitCode;
+                }
+                catch (Exception) { return 1; }
+            }
             if (args.Length == 2 && args[0] == "--self-test")
             {
                 try { File.WriteAllText(args[1], Package.SelfTest(), new UTF8Encoding(false)); return 0; }

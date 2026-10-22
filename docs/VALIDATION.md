@@ -1,6 +1,6 @@
 # Compatibility and validation
 
-Release 1.0.0 uses the supplied Microsoft-signed `Vdevice.sys`, without kernel
+The package uses the supplied Microsoft-signed `Vdevice.sys` 1.0.0.0, without kernel
 modifications. The SYS and INF passed SignTool catalog verification under kernel
 signing policy; both installers contain byte-identical driver files.
 
@@ -11,8 +11,13 @@ signing policy; both installers contain byte-identical driver files.
   treated as errors. No kernel source or WDK was needed for that build.
 - Native offline tests cover **over 350,000** protocol/range,
   packing, touch-coordinate, GIP-handshake and malformed-packet checks.
-- **13** managed installer/XAML checks and **25,371** workshop serializer/native
+- **15** managed installer/XAML suites, including **56** installation-state,
+  real-view, restart, cleanup and process-output assertions, and **25,371** workshop serializer/native
   validation checks passed without driver installation or device creation.
+- Installer 1.0.1.0 passed install, reinstall, uninstall, service cleanup and
+  simultaneous UI/console exclusion checks in an isolated Windows 11 guest.
+  A pending-restart fixture persisted across status reads and cleared after a
+  normal Windows restart. This did not require a kernel rebuild or signing change.
 - The signed package was installed and its loaded SYS hash verified in isolated
   Hyper-V Windows 10 build 19045 and Windows 11 build 26200 guests.
 - All five virtual-device examples passed repeated live runs. Windows 11 ran
