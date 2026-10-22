@@ -6,10 +6,10 @@ signing policy; both installers contain byte-identical driver files.
 
 ## Checks performed
 
-- A clean public-source build compiled the SDK, seven console programs, five
-  native control panels, Descriptor Workshop, and both installers with warnings
+- A clean public-source build compiled the SDK, five native control panels,
+  Descriptor Workshop, and both installers with warnings
   treated as errors. No kernel source or WDK was needed for that build.
-- Twelve native offline tests passed, including **over 350,000** protocol/range,
+- Native offline tests cover **over 350,000** protocol/range,
   packing, touch-coordinate, GIP-handshake and malformed-packet checks.
 - **13** managed installer/XAML checks and **25,371** workshop serializer/native
   validation checks passed without driver installation or device creation.
@@ -25,7 +25,7 @@ signing policy; both installers contain byte-identical driver files.
 | Xbox 360 | Exact buttons, four axes and both triggers via real `XInputGetState`; rumble returned through host OUT; 2,000 state updates and release per run. |
 | DS4 | Exact buttons/hat/sticks, gyro and touch coordinates via a Windows HID handle; feature and rumble/RGB output; 2,000 updates per run. |
 | Xbox One GIP | Hello, fragmented metadata/ACKs, USB security opt-out acceptance, exact real XInput state, host motor commands, 2,000 updates and release per run. |
-| Native control panels | All five panels created a live device, sent a state, reset it, disconnected and exited normally in Windows 11; offline preview opening/closing and rendering also passed. The protocol code is shared with the console implementations. |
+| Native control panels | All five panels created a live device, sent a state, reset it, disconnected and exited normally in Windows 11; offline preview opening/closing and rendering also passed. Their protocol code is also used by the automated tests. |
 
 GIP briefly repeats the latest state during initial Windows consumer creation
 and after updates. The first send remains immediate, and repetition stops when

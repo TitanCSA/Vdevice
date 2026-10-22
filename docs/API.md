@@ -9,7 +9,7 @@ Use `Vdevice.h` and `Vdevice.cpp` together in a Windows C++17 application. The S
 5. `Send_Input(device, endpoint, bytes)` and keep consuming host outputs/controls.
 6. Send the protocol's release/neutral report if needed, then `Delete_Device(device)`.
 
-The [console examples](../ExamplesConsole) contain complete independent descriptor construction and this lifecycle. Their local construction functions are example code, not SDK operations. The UI's [raw JSON sample](../ExamplesUI/CustomDevice.json) is another editable description; see its [workshop instructions](../ExamplesUI/README.md).
+The [graphical examples](../ExamplesUI) contain complete independent descriptor construction and this lifecycle. Their local construction functions are example code, not SDK operations. The [raw JSON sample](../ExamplesUI/CustomDevice.json) is another editable description; see its [workshop instructions](../ExamplesUI/README.md).
 
 ## Seven operations
 

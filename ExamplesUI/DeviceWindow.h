@@ -1,5 +1,5 @@
 #pragma once
-#include "../ExamplesConsole/ExampleRuntime.h"
+#include "ExampleRuntime.h"
 #include <commctrl.h>
 #include <shellapi.h>
 #include <memory>

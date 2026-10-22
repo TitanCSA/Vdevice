@@ -1,7 +1,8 @@
 # Graphical examples
 
-The five standalone native control panels use the same C++ protocol definitions
-as the console examples: keyboard, mouse, Xbox 360, DualShock 4 and Xbox One GIP.
+The five standalone native control panels cover keyboard, mouse, Xbox 360,
+DualShock 4 and Xbox One GIP. Their C++ protocol definitions and shared device
+lifecycle are included in this folder.
 Run `VdeviceKeyboardUI.exe`, `VdeviceMouseUI.exe`, `VdeviceXbox360UI.exe`,
 `VdeviceDualShock4UI.exe` or `VdeviceXboxOneGipUI.exe` from the Examples release.
 

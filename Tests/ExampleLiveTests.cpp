@@ -1,14 +1,15 @@
 #define VDEVICE_EXAMPLE_TEST
-#include "../ExamplesConsole/Keyboard.cpp"
-#include "../ExamplesConsole/Mouse.cpp"
-#include "../ExamplesConsole/Xbox360.cpp"
-#include "../ExamplesConsole/DualShock4.cpp"
-#include "../ExamplesConsole/XboxOneGip.cpp"
-#include "../ExamplesConsole/ExampleRuntime.h"
+#include "../ExamplesUI/Keyboard.cpp"
+#include "../ExamplesUI/Mouse.cpp"
+#include "../ExamplesUI/Xbox360.cpp"
+#include "../ExamplesUI/DualShock4.cpp"
+#include "../ExamplesUI/XboxOneGip.cpp"
+#include "../ExamplesUI/ExampleRuntime.h"
 #include <setupapi.h>
 #include <hidsdi.h>
 #include <hidpi.h>
 #include <Xinput.h>
+#include <iostream>
 #include <memory>
 
 namespace {

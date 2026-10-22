@@ -5,8 +5,8 @@ and device creation need administrator rights; offline descriptor checks do not.
 
 1. Download `VdeviceSetup.exe` from [Releases](https://github.com/TitanCSA/Vdevice/releases/latest).
 2. Accept UAC and choose **Install / update**. Restart Windows if requested.
-3. Open a control panel and choose **Create device**, or run a console sample
-   from an administrator terminal. Wait for **READY** before sending states.
+3. Open a control panel and choose **Create device**. Wait for **READY** before
+   sending states.
 
 The embedded driver is Microsoft-signed. No Test Mode, Secure Boot changes or
 extra virtual-gamepad driver are required. The installer/example EXEs have their

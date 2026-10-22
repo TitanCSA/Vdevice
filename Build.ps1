@@ -1,4 +1,4 @@
-param([ValidateSet('All','Native','Installers','ExamplesConsole','ExamplesUI','Tests')][string]$Target='All')
+param([ValidateSet('All','Native','Installers','ExamplesUI','Tests')][string]$Target='All')
 $ErrorActionPreference='Stop'
 $root=$PSScriptRoot
 $vswhere=Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'

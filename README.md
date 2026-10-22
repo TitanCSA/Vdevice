@@ -7,7 +7,7 @@ seven library operations; model-specific protocols live in the examples.
 
 **[Download](https://github.com/TitanCSA/Vdevice/releases/latest)** |
 [Installation](docs/INSTALLATION.md) | [Raw C++ API](docs/API.md) |
-[Console examples](ExamplesConsole/README.md) | [Compatibility](docs/VALIDATION.md)
+[Graphical examples](ExamplesUI/README.md) | [Compatibility](docs/VALIDATION.md)
 
 | Keyboard control panel | DS4 control panel |
 | --- | --- |
@@ -43,30 +43,18 @@ status. [Installation and diagnostics](docs/INSTALLATION.md).
 
 ## Included devices and controls
 
-| Console / UI executable | Example |
+| UI executable | Example |
 | --- | --- |
-| `Keyboard.exe` / `VdeviceKeyboardUI.exe` | USB boot keyboard, modifiers, six keys and host LED feedback |
-| `Mouse.exe` / `VdeviceMouseUI.exe` | Five buttons, signed 16-bit relative X/Y and vertical/horizontal wheels |
-| `Xbox360.exe` / `VdeviceXbox360UI.exe` | ViGEm-style XInput gamepad, sticks, triggers, buttons and rumble |
-| `DualShock4.exe` / `VdeviceDualShock4UI.exe` | DS4 USB interface, sticks, triggers, D-pad, motion, touch and rumble/RGB feedback |
-| `XboxOneGip.exe` / `VdeviceXboxOneGipUI.exe` | Native PC GIP gamepad, metadata, Guide, analog controls and motor commands |
+| `VdeviceKeyboardUI.exe` | USB boot keyboard, modifiers, six keys and host LED feedback |
+| `VdeviceMouseUI.exe` | Five buttons, signed 16-bit relative X/Y and vertical/horizontal wheels |
+| `VdeviceXbox360UI.exe` | ViGEm-style XInput gamepad, sticks, triggers, buttons and rumble |
+| `VdeviceDualShock4UI.exe` | DS4 USB interface, sticks, triggers, D-pad, motion, touch and rumble/RGB feedback |
+| `VdeviceXboxOneGipUI.exe` | Native PC GIP gamepad, metadata, Guide, analog controls and motor commands |
 
-Raw HID samples and **Descriptor Workshop** are also included. The workshop
-imports editable JSON descriptions and exchanges raw reports.
-
-Run a console example from an administrator terminal, then enter commands:
-
-```text
-Keyboard.exe
-tap key1 4
-set modifiers 2 key1 5
-reset
-quit
-```
-
-`set` sends field values immediately; `tap` applies a temporary value. Use `fields`,
-`info`, `send`, `raw ENDPOINT HEX-BYTES`, `sleep MS` or `help` for further control.
-`--help` and `--validate` work offline. [Complete examples](ExamplesConsole/README.md).
+**Descriptor Workshop** imports editable JSON descriptions and exchanges raw
+reports. All device examples have a graphical interface; the console installer
+remains available for command-line installation and diagnostics.
+[Control panel instructions](ExamplesUI/README.md).
 
 ## How it works
 
@@ -121,8 +109,7 @@ package and **SHA256SUMS.txt**.
 
 ```text
 Vdevice/           Vdevice.h and Vdevice.cpp
-ExamplesConsole/   Raw protocol definitions and console samples
-ExamplesUI/        Control panels and Descriptor Workshop
+ExamplesUI/        Control panels, raw protocols and Descriptor Workshop
 InstallerConsole/  Console installer and setup backend
 InstallerUI/       GUI installer and signed driver package
 docs/ Tests/       API, installation and verification
