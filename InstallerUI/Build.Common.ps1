@@ -13,7 +13,9 @@ function New-VdevicePayload([string]$BuildDirectory,[string]$DriverDirectory,[st
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     New-Item -ItemType Directory -Path $BuildDirectory -Force|Out-Null
     $files=[ordered]@{}
-    foreach($name in @('Vdevice.inf','Vdevice.sys')) {
+    $required=@('Vdevice.inf','Vdevice.sys')
+    if([IO.File]::ReadAllText((Join-Path $DriverDirectory 'Vdevice.inf')).Contains('TitanDemoClock.sys')){$required+='TitanDemoClock.sys'}
+    foreach($name in $required) {
         $path=Join-Path $DriverDirectory $name
         if(!(Test-Path -LiteralPath $path -PathType Leaf)){throw "Missing driver payload: $path. Build the driver first."}
         $files[$name]=[IO.Path]::GetFullPath($path)
