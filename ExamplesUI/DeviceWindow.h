@@ -75,7 +75,7 @@ class DevicePanel {
         for(std::size_t i=0;i<model.buttons.size();++i)checks.push_back(Control(L"BUTTON",Wide(model.buttons[i].name),BS_AUTOCHECKBOX|WS_TABSTOP,24+int(i%8)*124,after+int(i/8)*29,122,26,200+static_cast<int>(i)));
         const int explanation=after+int((model.buttons.size()+7)/8)*29+10;
         Control(L"STATIC",Wide(model.legend),0,24,explanation,984,60);
-        Control(L"STATIC",L"Host feedback and status  ·  Create starts the shared two-hour demo allowance",0,24,explanation+68,990,25);
+        Control(L"STATIC",L"Host feedback and status  ·  Create starts the shared one-hour demo allowance",0,24,explanation+68,990,25);
         log=Control(L"EDIT",L"",ES_MULTILINE|ES_READONLY|ES_AUTOVSCROLL|WS_VSCROLL|WS_TABSTOP,24,explanation+96,984,155);
         const int height=explanation+285;RECT bounds{0,0,1036,height};AdjustWindowRectEx(&bounds,WS_OVERLAPPED|WS_CAPTION|WS_SYSMENU|WS_MINIMIZEBOX,FALSE,0);
         SetWindowPos(window,nullptr,0,0,bounds.right-bounds.left,bounds.bottom-bounds.top,SWP_NOMOVE|SWP_NOZORDER);

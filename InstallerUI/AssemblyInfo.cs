@@ -3,5 +3,5 @@ using System.Reflection;
 [assembly: AssemblyDescription("Vdevice Virtual USB Device Driver Installer")]
 [assembly: AssemblyCompany("TitanCSA")]
 [assembly: AssemblyProduct("Vdevice")]
-[assembly: AssemblyVersion("1.0.4.0")]
-[assembly: AssemblyFileVersion("1.0.4.0")]
+[assembly: AssemblyVersion("1.0.5.0")]
+[assembly: AssemblyFileVersion("1.0.5.0")]

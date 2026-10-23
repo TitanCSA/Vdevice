@@ -64,7 +64,7 @@ class Session {
                 }
                 if(now>=nextInfo){
                     const auto info=Vdevice::Get_Info();Require(info);
-                    if(info.trial_expired)throw std::runtime_error("The shared two-hour demo allowance expired. Restart Windows to use it again.");
+                    if(info.trial_expired)throw std::runtime_error("The shared one-hour demo allowance expired. Restart Windows to use it again.");
                     bool present=false;
                     for(const auto& current:info.devices)if(current.token==device.token){
                         present=true;

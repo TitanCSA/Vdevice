@@ -5,7 +5,7 @@
   </Grid.Resources>
   <Grid Margin="28"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
     <StackPanel><TextBlock Text="Vdevice" FontSize="32" FontWeight="SemiBold"/><TextBlock Text="Create and control virtual USB devices" FontSize="14" Margin="0,5,0,20" Foreground="#627590"/></StackPanel>
-    <TextBlock Grid.Row="1" Text="Microsoft-signed driver · Windows 10/11 x64 · Two-hour demo per Windows boot" Foreground="#627590" Margin="0,0,0,18"/>
+    <TextBlock Grid.Row="1" Text="Microsoft-signed driver · Windows 10/11 x64 · One-hour demo per Windows boot" Foreground="#627590" Margin="0,0,0,18"/>
     <UniformGrid Grid.Row="2" Columns="3" Margin="0,0,-12,18">
       <Border Background="White" BorderBrush="#DFE7F3" BorderThickness="1" CornerRadius="12" Padding="18" Margin="0,0,12,0"><StackPanel><TextBlock Text="INSTALLATION" Foreground="#627590" FontSize="11"/><TextBlock x:Name="InstallationState" Text="Checking…" FontSize="19" FontWeight="SemiBold" Margin="0,7,0,7"/><TextBlock x:Name="InstallationDetail" Text="Reading Windows device and package state" Foreground="#627590" FontSize="12"/></StackPanel></Border>
       <Border Background="White" BorderBrush="#DFE7F3" BorderThickness="1" CornerRadius="12" Padding="18" Margin="0,0,12,0"><StackPanel><TextBlock Text="KERNEL DRIVER" Foreground="#627590" FontSize="11"/><TextBlock x:Name="DriverState" Text="Checking…" FontSize="19" FontWeight="SemiBold" Margin="0,7,0,7"/><TextBlock x:Name="DriverDetail" Text="Reading service and active driver image" Foreground="#627590" FontSize="12"/></StackPanel></Border>

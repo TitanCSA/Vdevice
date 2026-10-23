@@ -52,7 +52,7 @@ package without installation.
 
 ## Demo and cleanup
 
-The two-hour allowance begins at the first successful virtual-device creation
+The one-hour allowance begins at the first successful virtual-device creation
 in a Windows kernel boot and is shared by all programs. Expiry disconnects
 virtual devices and refuses further creation/transfers. Closing a program or
 reinstalling does not reset it. Use **Windows Restart** for a fresh allowance;
@@ -80,7 +80,7 @@ to cover Windows consumer initialization; it sends the first report immediately.
 ## Demo clock component
 
 Setup includes the Microsoft-signed `TitanDemoClock.sys` companion. It keeps this
-product's two-hour allowance in kernel memory until Windows Restart, independently
+product's one-hour allowance in kernel memory until Windows Restart, independently
 of unloading or reinstalling the main driver. It has no user-mode background process
 and is not attached to the input stack. A product-owned driver service registers it;
 removing another product does not remove this product's registration. Missing or

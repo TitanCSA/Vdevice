@@ -10,7 +10,7 @@ packages with these terms and supplied notices. Keep signatures, catalogs,
 integrity manifests and the demo limitation intact. This does not grant a right
 to redistribute the unrestricted edition.
 
-The shared demo allowance lasts two hours per Windows kernel boot, starting
+The shared demo allowance lasts one hour per Windows kernel boot, starting
 with the first successful virtual-device creation. Expiry disconnects virtual
 devices and refuses creation and transfers until Windows Restart. Closing an
 application or reinstalling the driver does not reset the allowance; sleep

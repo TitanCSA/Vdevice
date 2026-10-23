@@ -357,6 +357,6 @@ Use a bounded output loop rather than repeatedly creating devices or busy pollin
 
 The driver owns devices by their open session, not a copied token. Tokens correlate events, not access rights for another process. Live access is restricted to administrators/system; Validate_Device remains offline.
 
-The trial lasts 7,200 seconds after first successful creation per kernel boot, shared across applications. Queries do not start it. Expiry disconnects devices, wakes requests and prevents creation/transfers. Reinstalling or restarting an application does not reset it; Windows Restart does. Sleep counts toward the budget.
+The trial lasts 3,600 seconds after first successful creation per kernel boot, shared across applications. Queries do not start it. Expiry disconnects devices, wakes requests and prevents creation/transfers. Reinstalling or restarting an application does not reset it; Windows Restart does. Sleep counts toward the budget.
 
 Supported topology/validation do not guarantee every Windows class driver or proprietary product. Applications implement the protocols they advertise. See [installation](INSTALLATION.md) and [validation](VALIDATION.md).

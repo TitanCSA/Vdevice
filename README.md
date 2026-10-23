@@ -127,7 +127,7 @@ included.** User-mode source is [MIT](LICENSE); prebuilt driver binaries have
 
 ## Demo edition and related projects
 
-**Two hours per Windows kernel boot**, starting at the first successful virtual
+**One hour per Windows kernel boot**, starting at the first successful virtual
 device creation and shared across applications. Sleep counts; closing or
 reinstalling does not reset it. Expiry disconnects virtual devices and refuses
 new creation/transfers until Windows **Restart**. For the unrestricted version,

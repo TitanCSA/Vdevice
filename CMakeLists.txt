@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.24)
-project(Vdevice VERSION 1.0.4.0 LANGUAGES CXX)
+project(Vdevice VERSION 1.0.5.0 LANGUAGES CXX)
 if(NOT WIN32 OR NOT MSVC OR NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
   message(FATAL_ERROR "Use Windows x64 and Visual Studio 2022 C++ tools.")
 endif()

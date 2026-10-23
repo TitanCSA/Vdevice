@@ -64,7 +64,7 @@ namespace Vdevice.Setup
                 driverState.Text = snapshot.ServiceRunning ? "Running" : snapshot.ServiceInstalled ? "Stopped" : "Not installed";
                 driverDetail.Text = snapshot.PayloadMatches ? "Active and configured SYS files match this package." : snapshot.Installed ? "Driver identity is not fully verified. See diagnostics." : "No active Vdevice service.";
                 apiState.Text = snapshot.ControllerQuiesced ? "Paused for removal" : snapshot.ApiAvailable ? "Responding" : "Unavailable";
-                apiDetail.Text = snapshot.TrialExpired ? "Demo expired. Restart Windows for another two-hour session."
+                apiDetail.Text = snapshot.TrialExpired ? "Demo expired. Restart Windows for another one-hour session."
                     : snapshot.ApiAvailable ? snapshot.TrialStarted ? "Demo remaining: " + TimeSpan.FromSeconds(snapshot.TrialRemainingSeconds).ToString(@"hh\:mm\:ss") : "Demo starts when you create a virtual device."
                     : snapshot.ApiError != 0 ? "Windows error " + snapshot.ApiError + ". No virtual device was created by this check."
                     : "Check incomplete · Windows error " + snapshot.QueryError + ". See the detailed report.";
