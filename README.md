@@ -28,6 +28,11 @@ Screenshots show offline previews of the applications, not hardware tests.
 
 ## Install and try
 
+Use a virtual keyboard to repeat an application's input test or experiment with
+USB/HID descriptors without building a physical device. This runs on the Windows
+PC; it is not Arduino firmware. A board with native USB HID may be simpler for a
+standalone keyboard. [Use cases, board integration boundaries and a no-text diagnostic checklist](docs/USE-CASES.md).
+
 1. Download **VdeviceSetup.exe** from the latest release and accept elevation.
 2. Choose **Install** or **Reinstall / repair**. Wait for **Installed and ready**;
    if Windows requests a restart, save your work and use **Restart Windows**.
