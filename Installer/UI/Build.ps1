@@ -1,7 +1,7 @@
 param([string]$DriverDirectory,[string]$NativeHelper,[string]$OutputDirectory,[string]$BuildDirectory)
 $ErrorActionPreference='Stop'
-$root=Split-Path $PSScriptRoot -Parent
-if(!$DriverDirectory){$DriverDirectory=Join-Path $root 'InstallerUI\Package'}
+$root=Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+if(!$DriverDirectory){$DriverDirectory=Join-Path $root 'Installer\UI\Package'}
 if(!$NativeHelper){$NativeHelper=Join-Path $root 'bin\Native\Release\VdeviceSetupNative.exe'}
 if(!$OutputDirectory){$OutputDirectory=Join-Path $root 'bin\InstallerUI'}
 if(!$BuildDirectory){$BuildDirectory=Join-Path $root 'obj\InstallerUI'}

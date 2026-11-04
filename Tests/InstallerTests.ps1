@@ -6,7 +6,7 @@ $OutputDirectory=[IO.Path]::GetFullPath($OutputDirectory)
 New-Item -ItemType Directory -Path $OutputDirectory -Force|Out-Null
 Add-Type -AssemblyName System.IO.Compression
 Add-Type -AssemblyName System.IO.Compression.FileSystem
-. (Join-Path $root 'InstallerUI\Build.Common.ps1')
+. (Join-Path $root 'Installer\UI\Build.Common.ps1')
 $compiler=Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
 $refs=Get-VdeviceReferences
 $harness=Join-Path $OutputDirectory 'Harness.cs'
@@ -42,7 +42,7 @@ function New-Fixture([string]$Name,[object[]]$Entries,[hashtable]$Manifest,[bool
     $exe=Join-Path $stage 'OfflinePackageTest.exe'
     $arguments=@('/nologo','/noconfig','/nostdlib+','/target:exe','/platform:x64','/optimize+','/warn:4','/warnaserror+',"/out:$exe","/resource:$zip,Payload.zip","/resource:$json,PayloadHashes.json")
     foreach($referenceName in @('mscorlib.dll','System.dll','System.Core.dll','System.Web.Extensions.dll','System.IO.Compression.dll')){$arguments+='/reference:'+(Join-Path $refs $referenceName)}
-    $arguments+=@($harness,(Join-Path $root 'InstallerUI\Package.cs'))
+    $arguments+=@($harness,(Join-Path $root 'Installer\UI\Package.cs'))
     & $compiler @arguments
     if($LASTEXITCODE){throw "Fixture compilation failed: $Name"}
     $expect=if($Accept){'accept'}else{'reject'}
@@ -90,7 +90,7 @@ if(Test-Path -LiteralPath $console){
 # Parse the real views without starting their applications, connecting to a
 # driver, creating devices, sending reports, or presenting an elevation prompt.
 Add-Type -AssemblyName PresentationFramework
-foreach($relative in @('InstallerUI\MainWindow.xaml','ExamplesUI\MainWindow.xaml')){
+foreach($relative in @('Installer\UI\MainWindow.xaml','Examples\UI\MainWindow.xaml')){
     $stream=[IO.File]::OpenRead((Join-Path $root $relative))
     try{$view=[Windows.Markup.XamlReader]::Load($stream);if(!$view){throw "Empty view: $relative"}}finally{$stream.Dispose()}
     $results+=[pscustomobject]@{name=('XAML '+$relative);passed=$true}

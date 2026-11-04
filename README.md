@@ -18,7 +18,7 @@ seven library operations; model-specific protocols live in the examples.
 
 **[Download](https://github.com/TitanCSA/Vdevice/releases/latest)** |
 [Installation](docs/INSTALLATION.md) | [Raw C++ API](docs/API.md) |
-[Graphical examples](ExamplesUI/README.md) | [Compatibility](docs/VALIDATION.md)
+[Graphical examples](Examples/UI/README.md) | [Compatibility](docs/VALIDATION.md)
 
 | Keyboard control panel | DS4 control panel |
 | --- | --- |
@@ -74,7 +74,7 @@ status. [Installation and diagnostics](docs/INSTALLATION.md).
 **Descriptor Workshop** imports editable JSON descriptions and exchanges raw
 reports. All device examples have a graphical interface; the console installer
 remains available for command-line installation and diagnostics.
-[Control panel instructions](ExamplesUI/README.md).
+[Control panel instructions](Examples/UI/README.md).
 
 ## Applications built on Vdevice
 
@@ -142,9 +142,11 @@ package and **SHA256SUMS.txt**.
 
 ```text
 Vdevice/           Vdevice.h and Vdevice.cpp
-ExamplesUI/        Control panels, raw protocols and Descriptor Workshop
-InstallerConsole/  Console installer and setup backend
-InstallerUI/       GUI installer and signed driver package
+Examples/
+  UI/              Control panels, raw protocols and Descriptor Workshop
+Installer/
+  Console/         Console installer and setup backend
+  UI/              GUI installer and signed driver package
 docs/ Tests/       API, installation and verification
 ```
 

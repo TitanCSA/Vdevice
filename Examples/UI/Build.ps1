@@ -1,12 +1,12 @@
 param([string]$OutputDirectory,[string]$NativeBridge)
 $ErrorActionPreference='Stop'
-$root=Split-Path $PSScriptRoot -Parent
+$root=Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 if(!$OutputDirectory){$OutputDirectory=Join-Path $root 'bin\ExamplesUI'}
 if(!$NativeBridge){
     foreach($candidate in @((Join-Path $OutputDirectory 'Release\VdeviceBridge.dll'),(Join-Path $OutputDirectory 'VdeviceBridge.dll'),(Join-Path $root 'bin\Native\Release\VdeviceBridge.dll'))){if(Test-Path -LiteralPath $candidate -PathType Leaf){$NativeBridge=$candidate;break}}
 }
 if(!$NativeBridge -or !(Test-Path -LiteralPath $NativeBridge -PathType Leaf)){throw 'Build the VdeviceBridge native target first.'}
-. (Join-Path $root 'InstallerUI\Build.Common.ps1')
+. (Join-Path $root 'Installer\UI\Build.Common.ps1')
 New-Item -ItemType Directory -Path $OutputDirectory -Force|Out-Null
 $destination=Join-Path $OutputDirectory 'VdeviceBridge.dll'
 if([IO.Path]::GetFullPath($NativeBridge) -ne [IO.Path]::GetFullPath($destination)){Copy-Item -LiteralPath $NativeBridge -Destination $destination -Force}

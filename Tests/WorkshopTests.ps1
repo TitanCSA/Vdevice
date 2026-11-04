@@ -7,7 +7,7 @@ $OutputDirectory=[IO.Path]::GetFullPath($OutputDirectory)
 if(!(Test-Path -LiteralPath $NativeBridge -PathType Leaf)){throw 'Build the current raw VdeviceBridge target before running workshop tests.'}
 New-Item -ItemType Directory -Path $OutputDirectory -Force|Out-Null
 Copy-Item -LiteralPath $NativeBridge -Destination (Join-Path $OutputDirectory 'VdeviceBridge.dll') -Force
-. (Join-Path $root 'InstallerUI\Build.Common.ps1')
+. (Join-Path $root 'Installer\UI\Build.Common.ps1')
 $references=Get-VdeviceReferences
 $compiler=Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
 $exe=Join-Path $OutputDirectory 'WorkshopTests.exe'
@@ -17,10 +17,10 @@ $arguments=@('/nologo','/noconfig','/nostdlib+','/target:exe','/main:Vdevice.Exa
 foreach($name in @('mscorlib.dll','System.dll','System.Core.dll','System.Web.Extensions.dll','System.IO.Compression.dll','WindowsBase.dll','PresentationCore.dll','PresentationFramework.dll','System.Xaml.dll','System.Xml.dll')){
     $path=Join-Path $references $name;if(!(Test-Path -LiteralPath $path)){$path=Join-Path (Join-Path $references 'WPF') $name};$arguments+="/reference:$path"
 }
-$arguments+=@((Join-Path $root 'ExamplesUI\App.cs'),(Join-Path $PSScriptRoot 'WorkshopTests.cs'))
+$arguments+=@((Join-Path $root 'Examples\UI\App.cs'),(Join-Path $PSScriptRoot 'WorkshopTests.cs'))
 & $compiler @arguments
 if($LASTEXITCODE){throw 'Workshop test harness compilation failed.'}
-& $exe $OutputDirectory (Join-Path $root 'ExamplesUI\CustomDevice.json')
+& $exe $OutputDirectory (Join-Path $root 'Examples\UI\CustomDevice.json')
 if($LASTEXITCODE){throw 'Offline workshop regression failed.'}
 $result=Get-Content -LiteralPath (Join-Path $OutputDirectory 'results.json') -Raw -Encoding UTF8|ConvertFrom-Json
 if(!$result.passed -or $result.openedDriver -ne $false -or $result.createdDevices -ne $false){throw 'Invalid offline workshop test result.'}

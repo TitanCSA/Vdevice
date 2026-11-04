@@ -17,7 +17,7 @@ Fields use decimal numbers or a `0x` prefix; mouse motion is relative.
 README images were rendered from this mode. The panels are standard Win32
 applications, with no additional runtime DLL to distribute.
 
-![Xbox One GIP control panel in offline preview](../docs/images/gip.png)
+![Xbox One GIP control panel in offline preview](../../docs/images/gip.png)
 
 ## Descriptor Workshop
 

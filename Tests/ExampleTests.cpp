@@ -1,9 +1,9 @@
 #define VDEVICE_EXAMPLE_TEST
-#include "../ExamplesUI/Keyboard.cpp"
-#include "../ExamplesUI/Mouse.cpp"
-#include "../ExamplesUI/Xbox360.cpp"
-#include "../ExamplesUI/DualShock4.cpp"
-#include "../ExamplesUI/XboxOneGip.cpp"
+#include "../Examples/UI/Keyboard.cpp"
+#include "../Examples/UI/Mouse.cpp"
+#include "../Examples/UI/Xbox360.cpp"
+#include "../Examples/UI/DualShock4.cpp"
+#include "../Examples/UI/XboxOneGip.cpp"
 #include <iostream>
 #include <random>
 

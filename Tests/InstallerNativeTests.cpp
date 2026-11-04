@@ -1,7 +1,7 @@
 // These tests call only pure/read-only setup helpers. No installation entry
 // point, device removal, registry mutation, or elevation is performed.
 #define wmain VdeviceSetupMainForTests
-#include "../InstallerConsole/Native/Setup.cpp"
+#include "../Installer/Console/Native/Setup.cpp"
 #undef wmain
 #include <filesystem>
 

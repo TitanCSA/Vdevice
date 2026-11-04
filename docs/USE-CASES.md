@@ -48,4 +48,4 @@ Live use requires the matching installed driver and administrator access. Public
 user-mode source is MIT; kernel source is private. The public driver has a one-hour
 per-kernel-boot evaluation; unrestricted use has separately agreed commercial terms.
 
-[Raw API/lifecycle](API.md) · [control panels](../ExamplesUI/README.md)
+[Raw API/lifecycle](API.md) · [control panels](../Examples/UI/README.md)
