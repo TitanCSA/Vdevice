@@ -76,6 +76,19 @@ reports. All device examples have a graphical interface; the console installer
 remains available for command-line installation and diagnostics.
 [Control panel instructions](ExamplesUI/README.md).
 
+## Applications built on Vdevice
+
+| Project | Starting point |
+| --- | --- |
+| [Virtual Mouse Input](https://github.com/TitanCSA/Virtual-mouse-input) | A small MIT C++ example for virtual USB mouse descriptors, relative reports, buttons and wheels. Relative counts are not guaranteed screen pixels. |
+| [HID Fixture Studio](https://github.com/titanfyre/HID-Fixture-Studio) | Build full-speed virtual HID fixtures from report descriptors. |
+| [Input CI Runner](https://github.com/titanfyre/Input-CI-Runner) | Validate fixture JSON offline or run explicitly scheduled reports for application testing. |
+| [Remote Device Control](https://github.com/TitanCSA/Remote-Device-Control) | A GPL-3.0 Windows host/viewer application using Vdevice keyboard/mouse input and Sunshine/Moonlight H.264 transport. Requires an unlocked console desktop and direct connectivity; no central relay, audio, clipboard or gamepad forwarding. |
+
+Read each application's supported scope and license. Live device creation uses
+the matching private Vdevice driver and shares its one-hour-per-kernel-boot demo;
+application source availability does not grant driver redistribution rights.
+
 ## How it works
 
 The driver uses **KMDF / USB Device Emulation (UdeCx)** to enumerate virtual USB
