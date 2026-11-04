@@ -45,7 +45,7 @@ A separate UMDF HID implementation must be diagnosed in its own architecture.
 Vdevice's KMDF/UdeCx example is not a demonstrated fix for every UMDF keyboard.
 
 Live use requires the matching installed driver and administrator access. Public
-user-mode source is MIT; kernel source is private. The public driver has a one-hour
+user-mode source is MIT; demo/evaluation driver source is documented in [driver/README.md](../driver/README.md). The public driver has a one-hour
 per-kernel-boot evaluation; unrestricted use has separately agreed commercial terms.
 
 [Raw API/lifecycle](API.md) · [control panels](../Examples/UI/README.md)

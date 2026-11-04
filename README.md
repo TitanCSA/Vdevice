@@ -86,7 +86,7 @@ remains available for command-line installation and diagnostics.
 | [Remote Device Control](https://github.com/TitanCSA/Remote-Device-Control) | A GPL-3.0 Windows host/viewer application using Vdevice keyboard/mouse input and Sunshine/Moonlight H.264 transport. Requires an unlocked console desktop and direct connectivity; no central relay, audio, clipboard or gamepad forwarding. |
 
 Read each application's supported scope and license. Live device creation uses
-the matching private Vdevice driver and shares its one-hour-per-kernel-boot demo;
+the matching Vdevice demo driver and shares its one-hour-per-kernel-boot demo;
 application source availability does not grant driver redistribution rights.
 
 ## How it works
@@ -136,6 +136,12 @@ the examples contain complete descriptor construction and report encoders.
 
 ## Downloads and build
 
+Demo/evaluation driver source is available; see [driver/README.md](driver/README.md) for
+build instructions and separate evaluation-source terms. Those terms apply to
+Titan-authored driver code. Third-party source licenses and existing application/SDK
+licenses remain applicable. Full/commercial implementation and private signing or
+activation material are excluded.
+
 The [latest release](https://github.com/TitanCSA/Vdevice/releases/latest) provides
 both standalone installers, examples, SDK sources, the Microsoft-signed driver
 package and **SHA256SUMS.txt**.
@@ -152,8 +158,7 @@ docs/ Tests/       API, installation and verification
 
 Build with Visual Studio 2022 Desktop C++, a Windows SDK, CMake and .NET Framework
 reference assemblies: `powershell -ExecutionPolicy Bypass -File .\Build.ps1`.
-This builds user-mode components and runs offline tests. **Kernel source is not
-included.** User-mode source is [MIT](LICENSE); prebuilt driver binaries have
+This builds user-mode components and runs offline tests. **Demo/evaluation driver source is documented in [driver/README.md](driver/README.md).** User-mode source is [MIT](LICENSE); prebuilt driver binaries have
 [separate terms](licenses/BINARY-LICENSE.txt).
 
 ## Demo edition and related projects
