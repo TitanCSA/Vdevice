@@ -1,0 +1,9 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemDefinitionGroup>
+    <ClCompile><AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)sdk;$(MSBuildThisFileDirectory)sdk\Vdevice;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories><PreprocessorDefinitions>;UNICODE;_UNICODE;NOMINMAX;WIN32_LEAN_AND_MEAN;%(PreprocessorDefinitions)</PreprocessorDefinitions><AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions></ClCompile>
+    <Link><AdditionalDependencies>advapi32.lib;cfgmgr32.lib;comctl32.lib;crypt32.lib;gdi32.lib;hid.lib;newdev.lib;setupapi.lib;shell32.lib;user32.lib;wintrust.lib;%(AdditionalDependencies)</AdditionalDependencies></Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="$(MSBuildThisFileDirectory)sdk\Vdevice\Vdevice.cpp"><ObjectFileName>$(IntDir)TitanVdevice_%(Filename).obj</ObjectFileName></ClCompile>
+  </ItemGroup>
+</Project>

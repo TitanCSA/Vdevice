@@ -1,0 +1,2 @@
+<?xml version='1.0' encoding='utf-8'?>
+<package><metadata><id>TitanCSA.Vdevice.Native</id><version>1.0.5</version><authors>TitanCSA</authors><description>Public Windows x64 C++ source SDK for Vdevice. No kernel driver or installer is included.</description><readme>README.md</readme><license type="expression">MIT</license><repository type="git" url="https://github.com/TitanCSA/Vdevice" /></metadata></package>
