@@ -6,12 +6,12 @@ Current source layout and registry coverage. A GitHub download is distinct from 
 | --- | --- | --- |
 | CPP/vcpkg | published_custom_registry | vdevice |
 | CPP/conan | published_custom_source_index | [vdevice](https://github.com/TitanCSA/sdk-packages/tree/089bc73095aa8eda89bacbe10d0b9e58394b0207/conan-index) [Source](packaging/native/) |
-| CPP/nuget | account_email_confirmed_requires_matching_trusted_publishing_policy | Vdevice.Native |
-| NET/nuget | built_verified_requires_trusted_publishing_policy | Vdevice.SDK [Source](Vdevice-NET-nuget/) |
+| CPP/nuget | published_payload_verified | [Vdevice.Native](https://www.nuget.org/packages/Vdevice.Native/1.0.5) |
+| NET/nuget | published_payload_verified | [Vdevice.SDK](https://www.nuget.org/packages/Vdevice.SDK/1.0.0) |
 | Python/pypi | built_fixture_and_production_verified | vdevice [Source](Vdevice-Python-pypi/) |
 | Python/conda-forge | custom_channel_install_verified_requires_conda_forge_review | [vdevice](https://raw.githubusercontent.com/TitanCSA/sdk-packages/089bc73095aa8eda89bacbe10d0b9e58394b0207/conda-channel) [Source](packaging/conda/) |
 | Rust/cargo | published_install_verified | [vdevice](https://crates.io/crates/vdevice) [Source](Vdevice-Rust-cargo/) |
-| JavaScript/npm | registry_publication_requires_action | [vdevice](https://www.npmjs.com/package/vdevice) [Source](Vdevice-JavaScript-npm/) |
+| JavaScript/npm | registry_rate_limit_wait | [vdevice](https://www.npmjs.com/package/vdevice) [Source](Vdevice-JavaScript-npm/) |
 | Java/maven | published_install_verified | [vdevice](https://central.sonatype.com/artifact/io.github.titancsa/vdevice/1.0.0) [Source](Vdevice-Java-maven/) |
 | Java/jitpack | published_install_verified | [vdevice](https://jitpack.io/#TitanCSA/Vdevice/java-sdk-v1.0.0) [Source](Vdevice-Java-maven/) |
 | Go/modules | published_install_verified | [vdevice](https://pkg.go.dev/github.com/TitanCSA/Vdevice/Vdevice-Go-modules@v1.0.0) [Source](Vdevice-Go-modules/) |

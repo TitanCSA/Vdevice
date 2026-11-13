@@ -131,29 +131,28 @@
       "github_directory": "packaging/native"
     },
     "CPP/nuget": {
-      "status": "account_email_confirmed_requires_matching_trusted_publishing_policy",
+      "status": "published_payload_verified",
       "name": "Vdevice.Native",
       "version": "1.0.5",
-      "registry_published": false,
-      "consumer_build_verified": true,
+      "url": "https://www.nuget.org/packages/Vdevice.Native/1.0.5",
+      "public_payload_verified": true,
+      "public_consumer_verified": false,
+      "local_consumer_verified": true,
+      "registry_published": true,
       "documentation_bundled": true,
-      "publication_on_hold_by_owner": false,
-      "nuget_publication_status": "ready_requires_trusted_publishing_policy"
+      "publication_on_hold_by_owner": false
     },
     "NET/nuget": {
-      "status": "built_verified_requires_trusted_publishing_policy",
+      "status": "published_payload_verified",
       "name": "Vdevice.SDK",
       "version": "1.0.0",
-      "directory": "Vdevice-NET-nuget",
-      "registry_published": false,
-      "documentation_bundled": true,
-      "url": null,
+      "url": "https://www.nuget.org/packages/Vdevice.SDK/1.0.0",
+      "public_payload_verified": true,
       "public_consumer_verified": false,
-      "module": "vdevice",
-      "dll_name": "VdeviceJsonSDK.dll",
-      "api_prefix": "vdevice_json_",
-      "publication_on_hold_by_owner": false,
-      "nuget_publication_status": "ready_requires_trusted_publishing_policy"
+      "local_consumer_verified": true,
+      "registry_published": true,
+      "documentation_bundled": true,
+      "publication_on_hold_by_owner": false
     },
     "Python/pypi": {
       "status": "built_fixture_and_production_verified",
@@ -203,7 +202,7 @@
       "api_prefix": "vdevice_json_"
     },
     "JavaScript/npm": {
-      "status": "registry_publication_requires_action",
+      "status": "registry_rate_limit_wait",
       "name": "vdevice",
       "version": "1.0.0",
       "directory": "Vdevice-JavaScript-npm",
