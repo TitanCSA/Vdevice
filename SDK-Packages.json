@@ -12,6 +12,76 @@
         ]
       },
       "distribution": "Shared native source; registry publication is reported separately below"
+    },
+    {
+      "directory": "Vdevice-C-ffi",
+      "distribution": "Native C ABI adapter to the original project SDK",
+      "dll": "VdeviceJsonSDK.dll",
+      "api_prefix": "vdevice_json_"
+    },
+    {
+      "directory": "Vdevice-Python-pypi",
+      "language": "Python",
+      "registry": "pypi",
+      "name": "vdevice",
+      "version": "1.0.0",
+      "distribution": "Documented native SDK; registry receipt tracked independently"
+    },
+    {
+      "directory": "Vdevice-Ruby-rubygems",
+      "language": "Ruby",
+      "registry": "rubygems",
+      "name": "vdevice",
+      "version": "1.0.0",
+      "distribution": "Documented native SDK; registry receipt tracked independently"
+    },
+    {
+      "directory": "Vdevice-Go-modules",
+      "language": "Go",
+      "registry": "modules",
+      "name": "vdevice",
+      "version": "v1.0.0",
+      "distribution": "Documented native SDK; registry receipt tracked independently"
+    },
+    {
+      "directory": "Vdevice-Rust-cargo",
+      "language": "Rust",
+      "registry": "cargo",
+      "name": "vdevice",
+      "version": "1.0.0",
+      "distribution": "Documented native SDK; registry receipt tracked independently"
+    },
+    {
+      "directory": "Vdevice-Java-maven",
+      "language": "Java",
+      "registry": "maven",
+      "name": "vdevice",
+      "version": "1.0.0",
+      "distribution": "Documented native SDK; registry receipt tracked independently"
+    },
+    {
+      "directory": "Vdevice-Dart-pub-dev",
+      "language": "Dart",
+      "registry": "pub-dev",
+      "name": "vdevice",
+      "version": "1.0.0",
+      "distribution": "Documented native SDK; registry receipt tracked independently"
+    },
+    {
+      "directory": "Vdevice-NET-nuget",
+      "language": "NET",
+      "registry": "nuget",
+      "name": "Vdevice.SDK",
+      "version": "1.0.0",
+      "distribution": "Documented native SDK; registry receipt tracked independently"
+    },
+    {
+      "directory": "Vdevice-PowerShell-gallery",
+      "language": "PowerShell",
+      "registry": "gallery",
+      "name": "Vdevice",
+      "version": "1.0.0",
+      "distribution": "Documented native SDK; registry receipt tracked independently"
     }
   ],
   "notes": "Registry accounts or community acceptance are separate. No missing language binding is represented as implemented.",

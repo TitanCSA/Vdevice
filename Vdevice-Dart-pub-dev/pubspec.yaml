@@ -1,0 +1,9 @@
+name: vdevice
+description: Direct Windows x64 Vdevice SDK with native operations and exact uint64 identifiers.
+version: 1.0.0
+homepage: https://github.com/TitanCSA/Vdevice
+repository: https://github.com/TitanCSA/Vdevice
+environment:
+  sdk: ">=3.4.0 <4.0.0"
+platforms:
+  windows:

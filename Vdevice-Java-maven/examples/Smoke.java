@@ -1,0 +1,1 @@
+public class Smoke{public static void main(String[] a){try(var c=new titancsa.products.vdevice.Client(a.length>0?a[0]:null)){String invalid=c.call("check");if(!invalid.contains("\"ok\":false"))throw new AssertionError(invalid);if(a.length>0){String d=c.call("connect","{\"descriptors\":[{\"data\":[1,2,3]}]}");if(!d.contains("9223372036854775809"))throw new AssertionError(d);}}}}

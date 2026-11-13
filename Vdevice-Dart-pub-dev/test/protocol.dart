@@ -1,0 +1,2 @@
+import 'package:vdevice/vdevice.dart';
+Future<void> main(List<String> args)async{final c=await Client.open(libraryPath:args.isEmpty?null:args[0]);try{var rejected=false;try{c.call('check');}on NativeException{rejected=true;}if(!rejected)throw StateError('Invalid config accepted');if(args.isNotEmpty){final d=c.call('connect',{'descriptors':[{'data':[1,2,3]}]});if(d['device_id']!='9223372036854775809')throw StateError('uint64 lost');c.call('send',{'handle':d['handle'],'endpoint':129,'data':[0,1,255]});}}finally{c.close();}}

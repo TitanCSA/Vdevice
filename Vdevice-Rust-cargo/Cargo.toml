@@ -1,0 +1,16 @@
+[package]
+name="vdevice"
+version="1.0.0"
+edition="2021"
+rust-version="1.82"
+description="Windows x64 Vdevice direct native SDK"
+license="MIT"
+readme="README.md"
+repository="https://github.com/TitanCSA/Vdevice"
+build="build.rs"
+include=["src/**","build.rs","native/**","docs/**","examples/**","README.md","LICENSE"]
+[dependencies]
+serde_json="1.0"
+[package.metadata.docs.rs]
+default-target="x86_64-pc-windows-msvc"
+targets=["x86_64-pc-windows-msvc"]
