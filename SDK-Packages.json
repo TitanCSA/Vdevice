@@ -203,7 +203,7 @@
       "api_prefix": "vdevice_json_"
     },
     "JavaScript/npm": {
-      "status": "awaiting_browser_publication_authentication",
+      "status": "registry_publication_requires_action",
       "name": "vdevice",
       "version": "1.0.0",
       "directory": "Vdevice-JavaScript-npm",
