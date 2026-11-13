@@ -9,7 +9,7 @@ All operations take an argument object; absent arguments mean `{}`.
 - `receive`: `{timeout:0}`; bounded 0..100 ms per call so close cannot wait indefinitely. Poll from a worker if necessary. Returns kind, endpoint, setup, data, IDs and timed_out. Control outputs include opaque reply_handle.
 - `reply`: `{reply_handle,data:[],stall:false}`. Failed replies may be retried; successful handles become stale. Maximum 4096 outstanding control requests.
 
-JSON requests are bounded to 1 MiB, byte arrays to4096, descriptors64, rules32, devices16. Original SDK applies additional semantic validation. Unknown/stale/foreign handles fail. Operations are serialized; concurrent operations return busy. Input capture/driver operations are performed only on explicit calls. Production tests only open/close and reject an invalid config offline. Synthetic tests cover the rest without real devices.
+JSON requests are bounded to 1 MiB, byte arrays to4096, descriptors64, rules32, devices16. Original SDK applies additional semantic validation. Handle values belong to the client session that returned them. Unknown or stale values are rejected within that session; do not transfer numeric handles between clients. Operations are serialized; concurrent operations return busy. Input capture/driver operations are performed only on explicit calls. Production tests only open/close and reject an invalid config offline. Synthetic tests cover the rest without real devices.
 
 ## Client behavior
 
