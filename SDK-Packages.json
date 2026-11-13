@@ -68,6 +68,14 @@
       "distribution": "Documented native SDK; registry receipt tracked independently"
     },
     {
+      "directory": "Vdevice-JavaScript-npm",
+      "language": "JavaScript",
+      "registry": "npm",
+      "name": "vdevice",
+      "version": "1.0.0",
+      "distribution": "Documented native SDK; registry receipt tracked independently"
+    },
+    {
       "directory": "Vdevice-NET-nuget",
       "language": "NET",
       "registry": "nuget",
