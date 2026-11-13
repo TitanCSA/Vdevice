@@ -1,0 +1,18 @@
+[build-system]
+requires=["setuptools>=77","wheel>=0.43"]
+build-backend="setuptools.build_meta"
+[project]
+name="vdevice"
+version="1.0.0"
+description="Windows x64 Vdevice direct SDK"
+requires-python=">=3.10"
+license="MIT"
+readme="README.md"
+[project.urls]
+Repository="https://github.com/TitanCSA/Vdevice"
+[tool.setuptools]
+packages=["vdevice"]
+[tool.setuptools.package-data]
+vdevice=["*.dll"]
+[tool.setuptools.data-files]
+"share/vdevice/docs"=["docs/*","LICENSE"]
