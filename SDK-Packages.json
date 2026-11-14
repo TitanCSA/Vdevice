@@ -239,14 +239,14 @@
       "api_prefix": "vdevice_json_"
     },
     "Dart/pub-dev": {
-      "status": "built_fixture_and_production_verified",
+      "status": "published_install_verified",
       "name": "vdevice",
       "version": "1.0.0",
       "directory": "Vdevice-Dart-pub-dev",
-      "registry_published": false,
+      "registry_published": true,
       "documentation_bundled": true,
-      "url": null,
-      "public_consumer_verified": false,
+      "url": "https://pub.dev/packages/vdevice",
+      "public_consumer_verified": true,
       "module": "vdevice",
       "dll_name": "VdeviceJsonSDK.dll",
       "api_prefix": "vdevice_json_"

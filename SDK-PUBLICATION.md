@@ -21,7 +21,7 @@ Les SDK natifs sont destines a Windows x64. Java utilise Java22+ (Kotlin passe p
 | Go Modules | `github.com/TitanCSA/Vdevice/Vdevice-Go-modules` | `go get github.com/TitanCSA/Vdevice/Vdevice-Go-modules@v1.0.0` |
 | pkg.go.dev | `github.com/TitanCSA/Vdevice/Vdevice-Go-modules` | `Documentation : https://pkg.go.dev/github.com/TitanCSA/Vdevice/Vdevice-Go-modules@v1.0.0` |
 | PowerShell Gallery | `vdevice` | `Install-Module Vdevice -RequiredVersion 1.0.0 -Scope CurrentUser` |
-| pub.dev | `vdevice` | Commande prevue apres publication : `dart pub add vdevice:1.0.0` |
+| pub.dev | `vdevice` | `dart pub add vdevice:1.0.0` |
 | RubyGems | `vdevice` | `gem install vdevice -v 1.0.0` |
 | Packagist | `vdevice` | Commande prevue apres publication : `composer require titancsa/vdevice:1.0.0` |
 
