@@ -213,3 +213,15 @@ Les anciens imports Go et versions JitPack gardent leurs tags. Pour les ancienne
 >
 > Tell me whether you need personal use, business integration or OEM redistribution, and ask for pricing and license / activation instructions.
 <!-- full-version-contact:end -->
+
+## Performance & Benchmarks
+
+[Measured results and raw data](https://titancsa.github.io/TitanCSA-Benchmarks/vdevice/latency/) · [Comparisons](https://titancsa.github.io/TitanCSA-Benchmarks/comparisons/) · [Methodology](https://titancsa.github.io/TitanCSA-Benchmarks/methodology/measurement/)
+
+Vendor HID reports, independent keyboard/mouse and controller reception, and a matched WinMM joystick subset. These are publisher-operated Windows 11 Hyper-V software-path measurements, not physical USB latency or a universal speed ranking.
+
+| Tested scope | Verified result |
+|---|---|
+| Vendor-defined HID delivery | 34 validated runs; 61,000 post-warmup reports |
+
+**Stability limitation:** the Vdevice-backed controller campaign reproduced an unresolved guest WDF queue-purge bugcheck. Successful timings do not establish safe repeated teardown. See the [incident and test limits](https://titancsa.github.io/TitanCSA-Benchmarks/methodology/incident-wdf-001/).
