@@ -197,10 +197,10 @@ Les sources, licences, guides API et exemples sont regroupes dans [le depot SDK 
 | JitPack | `com.github.TitanCSA:Vdevice` | `com.github.TitanCSA:Vdevice:java-sdk-v1.0.0 (avec le depot JitPack)` |
 | Go Modules | `github.com/TitanCSA/Vdevice/Vdevice-Go-modules` | `go get github.com/TitanCSA/Vdevice/Vdevice-Go-modules@v1.0.0` |
 | pkg.go.dev | `github.com/TitanCSA/Vdevice/Vdevice-Go-modules` | `Documentation : https://pkg.go.dev/github.com/TitanCSA/Vdevice/Vdevice-Go-modules@v1.0.0` |
-| PowerShell Gallery | `vdevice` | `Install-Module Vdevice -RequiredVersion 1.0.0 -Scope CurrentUser` |
+| PowerShell Gallery | `Vdevice` | `Install-Module Vdevice -RequiredVersion 1.0.0 -Scope CurrentUser` |
 | pub.dev | `vdevice` | `dart pub add vdevice:1.0.0` |
 | RubyGems | `vdevice` | `gem install vdevice -v 1.0.0` |
-| Packagist | `vdevice` | Commande prevue apres publication : `composer require titancsa/vdevice:1.0.0` |
+| Packagist | `titancsa/vdevice` | Commande prevue apres publication : `composer require titancsa/vdevice:1.0.0` |
 
 Pour vcpkg et Conan, configure d abord le registre TitanCSA avec [le guide complet](https://github.com/TitanCSA/sdk-packages/tree/main/projects/Vdevice/README.md). Le guide explique aussi Maven/Gradle, les prerequis et le chargement des DLL. Les pilotes/applications du produit sont installes separement. Les commandes marquees prevues ne sont pas encore disponibles.
 
