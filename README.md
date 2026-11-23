@@ -1,7 +1,7 @@
 # Vdevice - Windows Kernel Driver for Virtual USB Keyboard, Mouse and Gamepad
 
 <!-- known-stability:start -->
-> **Known stability limit — 1.0.5.0 demo:** repeated virtual controller/filter trials reproduced two WDF queue-purge crashes in the lab VM. See [WDF-001](https://github.com/TitanCSA/Vdevice/issues/1) and its tested scope before repeated controller teardown.
+> **WDF-001 update:** the Microsoft-signed **1.0.6.0 demo** includes the controller teardown fix. The signed demo passed repeated removal and controller tests with Secure Boot enabled. The signed commercial 1.0.4.0 update is still pending. [Validation and current status](https://github.com/TitanCSA/Vdevice/issues/1).
 <!-- known-stability:end -->
 
 Create and control **virtual USB devices** on **Windows 10/11 x64** with a
