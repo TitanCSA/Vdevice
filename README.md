@@ -13,6 +13,8 @@ seven library operations; model-specific protocols live in the examples.
 [Installation](docs/INSTALLATION.md) | [Raw C++ API](docs/API.md) |
 [Graphical examples](Examples/UI/README.md) | [Compatibility](docs/VALIDATION.md)
 
+[Project overview and edition guide](https://titancsa.github.io/projects/vdevice/)
+
 | Keyboard control panel | DS4 control panel |
 | --- | --- |
 | ![Keyboard example in offline preview](docs/images/keyboard.png) | ![DS4 example in offline preview](docs/images/ds4.png) |
