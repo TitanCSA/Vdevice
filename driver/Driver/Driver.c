@@ -56,7 +56,7 @@ typedef struct ENDPOINT {
     WDFQUEUE Queue;
     WDFQUEUE Reads;
     ULONG Address,InterfaceNumber,Head,Tail;
-    BOOLEAN Started,Purging;
+    BOOLEAN Started,Purging,PurgeDeferred;
 } ENDPOINT;
 typedef struct REPORT_CACHE { ULONG Offset; BOOLEAN Valid; } REPORT_CACHE;
 struct VIRTUAL_DEVICE {
@@ -81,8 +81,11 @@ struct VIRTUAL_DEVICE {
     KEVENT PumpIdle;
     ULONG SourceUsers;
     KEVENT SourceIdle;
+    ULONG EndpointQueueUsers;
+    KEVENT EndpointQueuesIdle;
     KEVENT EnumerationReady;
     BOOLEAN Active,WasPlugged;
+    BOOLEAN EndpointQueuesRetiring,EndpointQueuesDrained;
 };
 WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(VIRTUAL_DEVICE, VirtualGet)
 typedef struct USB_CONTEXT { VIRTUAL_DEVICE* Device; } USB_CONTEXT;
@@ -697,9 +700,26 @@ VOID VdEndpointReset(UDECXUSBENDPOINT endpoint,WDFREQUEST request) {
     }
     e->Tail=VD_NONE;WdfSpinLockRelease(c->Lock);WdfRequestComplete(request,STATUS_SUCCESS);
 }
+/* Call with the controller lock held. A purge owns its access until the
+   asynchronous completion has acknowledged the UdeCx endpoint. */
+static WDFQUEUE AcquireEndpointQueueLocked(ENDPOINT* e) {
+    VIRTUAL_DEVICE* d=e->Device;
+    WDFQUEUE queue;
+    if(d->EndpointQueuesRetiring)return NULL;
+    queue=e->Address?e->Reads:d->Controls;
+    if(!queue)return NULL;
+    if(!d->EndpointQueueUsers++)KeClearEvent(&d->EndpointQueuesIdle);
+    return queue;
+}
+static VOID ReleaseEndpointQueue(VIRTUAL_DEVICE* d) {
+    CONTROLLER* c=d->Controller;
+    WdfSpinLockAcquire(c->Lock);
+    if(!--d->EndpointQueueUsers)KeSetEvent(&d->EndpointQueuesIdle,IO_NO_INCREMENT,FALSE);
+    WdfSpinLockRelease(c->Lock);
+}
 VOID VdEndpointStart(UDECXUSBENDPOINT endpoint) {
     ENDPOINT* e=EndpointGet(endpoint)->Endpoint;VIRTUAL_DEVICE* d=e->Device;CONTROLLER* c=d->Controller;
-    BOOLEAN orphan;
+    BOOLEAN orphan;WDFQUEUE queue;
     WdfSpinLockAcquire(c->Lock);
     if(d->Active && !c->Expired && !c->Removing && !c->Quiescing) {
         e->Started=TRUE;e->Purging=FALSE;
@@ -708,22 +728,25 @@ VOID VdEndpointStart(UDECXUSBENDPOINT endpoint) {
         }
     }
     orphan=FileGet(d->Owner)->Closing && !c->Removing;
+    queue=AcquireEndpointQueueLocked(e);
     WdfSpinLockRelease(c->Lock);
-    if(e->Reads)WdfIoQueueStart(e->Reads);
+    if(queue)WdfIoQueueStart(queue);
     if(!e->Address) {
-        WdfIoQueueStart(d->Controls);
         KeSetEvent(&d->EnumerationReady,IO_NO_INCREMENT,FALSE);
         if(orphan)WdfWorkItemEnqueue(c->ExpireWork);
     }
     WdfDpcEnqueue(c->Dpc);
+    if(queue)ReleaseEndpointQueue(d);
 }
 VOID VdPurged(WDFQUEUE queue,WDFCONTEXT context) {
-    ENDPOINT* e=(ENDPOINT*)context;
-    UNREFERENCED_PARAMETER(queue);UdecxUsbEndpointPurgeComplete(e->Usb);
+    ENDPOINT* e=(ENDPOINT*)context;VIRTUAL_DEVICE* d=e->Device;
+    UNREFERENCED_PARAMETER(queue);
+    UdecxUsbEndpointPurgeComplete(e->Usb);
+    ReleaseEndpointQueue(d);
 }
 VOID VdEndpointPurge(UDECXUSBENDPOINT endpoint) {
     ENDPOINT* e=EndpointGet(endpoint)->Endpoint;VIRTUAL_DEVICE* d=e->Device;CONTROLLER* c=d->Controller;
-    ULONG i;BOOLEAN any=FALSE;
+    ULONG i;BOOLEAN any=FALSE,deferred;WDFQUEUE queue;
     WdfSpinLockAcquire(c->Lock);e->Started=FALSE;e->Purging=TRUE;
     while(e->Head!=VD_NONE) {
         ULONG index=e->Head;e->Head=PacketAt(d,index)->Next;PacketAt(d,index)->Next=d->FreeHead;d->FreeHead=index;
@@ -732,11 +755,17 @@ VOID VdEndpointPurge(UDECXUSBENDPOINT endpoint) {
     e->Tail=VD_NONE;
     for(i=1;i<=d->Layout.EndpointCount;++i)if(d->Endpoints[i].Started)any=TRUE;
     if(!any && (d->Info.Flags&VdConfigured)) { d->Info.Flags&=~VdConfigured;StateLocked(d); }
+    queue=AcquireEndpointQueueLocked(e);
+    if(queue)++d->EndpointQueueUsers; // The completion may run before WdfIoQueuePurge returns.
+    deferred=d->EndpointQueuesRetiring && !d->EndpointQueuesDrained && (!e->Address || (e->Address&128));
+    if(deferred)e->PurgeDeferred=TRUE;
     WdfSpinLockRelease(c->Lock);
-    if(e->Reads)WdfIoQueuePurge(e->Reads,VdPurged,e);
-    else if(!e->Address)WdfIoQueuePurge(d->Controls,VdPurged,e);
-    else UdecxUsbEndpointPurgeComplete(endpoint);
     WdfDpcEnqueue(c->Dpc);
+    if(queue) {
+        WdfIoQueuePurge(queue,VdPurged,e);
+        ReleaseEndpointQueue(d);
+    }
+    else if(!deferred)UdecxUsbEndpointPurgeComplete(endpoint);
 }
 NTSTATUS VdPowerEntry(WDFDEVICE controller,UDECXUSBDEVICE usb) {
     VIRTUAL_DEVICE* d=UsbGet(usb)->Device;CONTROLLER* c=ControllerGet(controller);
@@ -796,14 +825,23 @@ static NTSTATUS DeleteVirtual(VIRTUAL_DEVICE* d,BOOLEAN controllerRemoval) {
         if(KeWaitForSingleObject(&d->EnumerationReady,Executive,KernelMode,FALSE,&due)!=STATUS_SUCCESS)
             return STATUS_DEVICE_BUSY;
     }
-    WdfSpinLockAcquire(c->Lock);d->Active=FALSE;
+    WdfSpinLockAcquire(c->Lock);d->Active=FALSE;d->EndpointQueuesRetiring=TRUE;
     DropInputsLocked(d);ForgetOutputsLocked(d);d->Info.Flags=0;
     WdfSpinLockRelease(c->Lock);
     KeWaitForSingleObject(&d->PumpIdle,Executive,KernelMode,FALSE,NULL);
     KeWaitForSingleObject(&d->SourceIdle,Executive,KernelMode,FALSE,NULL);
+    KeWaitForSingleObject(&d->EndpointQueuesIdle,Executive,KernelMode,FALSE,NULL);
     if(d->ControlTimer)WdfTimerStop(d->ControlTimer,TRUE);
     if(d->Controls)WdfIoQueuePurgeSynchronously(d->Controls);
     for(i=0;i<=d->Layout.EndpointCount;++i)if(d->Endpoints[i].Reads)WdfIoQueuePurgeSynchronously(d->Endpoints[i].Reads);
+    /* A late UdeCx purge must acknowledge the endpoint without touching a
+       retired queue. Complete callbacks that arrived while draining before
+       asking UdeCx to unplug the device. */
+    WdfSpinLockAcquire(c->Lock);d->EndpointQueuesDrained=TRUE;WdfSpinLockRelease(c->Lock);
+    for(i=0;i<=d->Layout.EndpointCount;++i)if(d->Endpoints[i].PurgeDeferred) {
+        d->Endpoints[i].PurgeDeferred=FALSE;
+        UdecxUsbEndpointPurgeComplete(d->Endpoints[i].Usb);
+    }
     if(!controllerRemoval && d->Usb) {
         if(d->WasPlugged)status=UdecxUsbDevicePlugOutAndDelete(d->Usb);
         else WdfObjectDelete(d->Usb);
@@ -840,6 +878,7 @@ static NTSTATUS Plug(CONTROLLER* c,WDFFILEOBJECT owner,const VD_CREATE* descript
     d=VirtualGet(object);d->Self=object;d->Controller=c;d->Owner=owner;WdfObjectReference(owner);d->Slot=slot;
     KeInitializeEvent(&d->PumpIdle,NotificationEvent,TRUE);
     KeInitializeEvent(&d->SourceIdle,NotificationEvent,TRUE);
+    KeInitializeEvent(&d->EndpointQueuesIdle,NotificationEvent,TRUE);
     KeInitializeEvent(&d->EnumerationReady,NotificationEvent,FALSE);
     d->Description=ExAllocatePool2(POOL_FLAG_NON_PAGED,description->TotalSize,VD_TAG);
     if(!d->Description) { status=STATUS_INSUFFICIENT_RESOURCES;goto fail; }
