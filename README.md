@@ -23,6 +23,8 @@ Screenshots show offline previews of the applications, not hardware tests.
 
 ## Install and try
 
+For a commercial ZIP, use the [Release activation troubleshooting guide](https://titancsa.github.io/guides/release-activation-help/) to check Windows error 2, the installed driver and SDK versions.
+
 Try the [virtual USB mouse quickstart](https://titancsa.github.io/guides/vdevice-virtual-usb-mouse/) with the matching signed demo and published mouse panel.
 
 Use a virtual keyboard to repeat an application's input test or experiment with
