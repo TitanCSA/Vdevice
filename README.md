@@ -163,8 +163,7 @@ This builds user-mode components and runs offline tests. **Demo/evaluation drive
 **One hour per Windows kernel boot**, starting at the first successful virtual
 device creation and shared across applications. Sleep counts; closing or
 reinstalling does not reset it. Expiry disconnects virtual devices and refuses
-new creation/transfers until Windows **Restart**. For the unrestricted version,
-DM **`titancsa`** on Discord.
+new creation/transfers until Windows **Restart**. [Get the licensed Vdevice Release](https://licences.configcsa.com/vdevice).
 
 The Xbox 360 and DS4 examples use descriptor/protocol material from
 [nefarius/ViGEmBus](https://github.com/nefarius/ViGEmBus) under BSD-3-Clause;
