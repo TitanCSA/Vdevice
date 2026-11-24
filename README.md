@@ -27,6 +27,8 @@ For a commercial ZIP, use the [Release activation troubleshooting guide](https:/
 
 Try the [virtual USB mouse quickstart](https://titancsa.github.io/guides/vdevice-virtual-usb-mouse/) with the matching signed demo and published mouse panel.
 
+Run the [custom HID interoperability test](https://titancsa.github.io/guides/vdevice-custom-hid-test/) with hidapitester, or [check the ZIP and signed driver catalog](https://titancsa.github.io/guides/verify-windows-driver-package/) before setup.
+
 Use a virtual keyboard to repeat an application's input test or experiment with
 USB/HID descriptors without building a physical device. This runs on the Windows
 PC; it is not Arduino firmware. A board with native USB HID may be simpler for a
