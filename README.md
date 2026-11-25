@@ -1,4 +1,4 @@
-# Vdevice - Windows Kernel Driver for Virtual USB Keyboard, Mouse and Gamepad
+# Vdevice
 
 <!-- simple-start:start -->
 Make Windows see a virtual keyboard, mouse or gamepad.
@@ -9,7 +9,7 @@ Make Windows see a virtual keyboard, mouse or gamepad.
 
 1. Run [VdeviceSetup.exe](https://github.com/TitanCSA/Vdevice/releases/download/v1.0.6.0-demo/VdeviceSetup.exe) and choose **Install**. If setup asks for a restart, restart Windows and reopen it.
 2. Extract the [examples ZIP](https://github.com/TitanCSA/Vdevice/releases/download/v1.0.6.0-demo/Vdevice-Examples-1.0.6.0.zip) and open **VdeviceMouseUI.exe**.
-3. Click **Create device** and wait for **READY**. Enter a small movement, then click **Send state**. The pointer should move. Click **Disconnect** when you finish.
+3. Click **Create device** and wait for **READY**. Set **x** to **32** and **y** to **0**, then click **Send state**. The pointer should move. Click **Disconnect** when you finish.
 <!-- simple-start:end -->
 
 <!-- full-version-contact:start -->
