@@ -1,12 +1,8 @@
-﻿{
-    "Schema":  1,
-    "Mode":  "Microsoft",
-    "Product":  "Vdevice",
-    "DriverVersion":  "1.0.6.0",
-    "TrialSeconds":  3600,
-    "TrialStorage":  "Kernel resident clock",
-    "ClockRequired":  true,
-    "SourceArchiveSHA256":  "C6B6FF5AE0447EBFD5DC15E9C807053D24A7FA270BEC87C4ADB41557A20EBD73",
-    "CodeBodySHA256":  "4B5467A310C29F5988F01CDE7821AB95F96ADFDBB3F83FA9C51DD781B4041E04",
-    "ClockCodeBodySHA256":  "8615DEE93FD3A09D50E84755422C181657B78A7F4CA773360430CD83726BE779"
+{
+  "Product": "Vdevice",
+  "DriverVersion": "1.0.6.1",
+  "Mode": "Microsoft",
+  "TrialSeconds": 3600,
+  "ClockRequired": true,
+  "InstallationBlocked": false
 }

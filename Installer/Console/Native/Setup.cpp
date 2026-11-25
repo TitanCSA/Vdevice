@@ -375,7 +375,7 @@ int Status(const std::wstring& expectedImage = L"") {
     Stage(L"Reading Windows installation state");
     SetupSnapshot snapshot;
     auto finish = [&](DWORD error) { return FinishStatus(snapshot, error); };
-    DeviceSet set; set.value = SetupDiGetClassDevsW(nullptr, nullptr, nullptr, DIGCF_ALLCLASSES);
+    DeviceSet set; set.value = SetupDiGetClassDevsW(nullptr, nullptr, nullptr, DIGCF_ALLCLASSES | DIGCF_PRESENT);
     if (set.value == INVALID_HANDLE_VALUE) { DWORD error = GetLastError(); Failure(L"Enumerate Windows devices", error); return finish(error); }
     for (DWORD index = 0;; ++index) {
         SP_DEVINFO_DATA device = {}; device.cbSize = sizeof(device);
@@ -475,7 +475,10 @@ int Status(const std::wstring& expectedImage = L"") {
         return finish(ERROR_NOT_READY);
     }
     if (snapshot.restart) return finish(ERROR_SUCCESS_REBOOT_REQUIRED);
-    return finish(snapshot.problems ? ERROR_NOT_READY : imageStatus ? imageStatus : !snapshot.running || !snapshot.started ? ERROR_SERVICE_NOT_ACTIVE : ERROR_SUCCESS);
+    if (imageStatus) return finish(imageStatus);
+    if (snapshot.problems || !snapshot.running || !snapshot.started)
+        return finish(snapshot.problems ? ERROR_NOT_READY : ERROR_SERVICE_NOT_ACTIVE);
+    return finish(ERROR_SUCCESS);
 }
 // /install deliberately means reinstall this exact bundled package, including
 // when Windows ranks an already-installed development package above it.
@@ -514,7 +517,7 @@ int Install(const std::wstring& path) {
     restartRequested = restartRequested || reboot != FALSE;
     if (stageError != ERROR_SUCCESS) return Failure(L"Stage driver package for reinstall", stageError);
     Stage(L"Preparing the Vdevice root controller");
-    DeviceSet existing; existing.value = SetupDiGetClassDevsW(nullptr, nullptr, nullptr, DIGCF_ALLCLASSES);
+    DeviceSet existing; existing.value = SetupDiGetClassDevsW(nullptr, nullptr, nullptr, DIGCF_ALLCLASSES | DIGCF_PRESENT);
     if (existing.value == INVALID_HANDLE_VALUE) return Failure(L"Enumerate existing devices", GetLastError());
     bool found = false;
     for (DWORD index = 0;; ++index) {

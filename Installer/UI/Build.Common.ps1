@@ -13,17 +13,30 @@ function New-VdevicePayload([string]$BuildDirectory,[string]$DriverDirectory,[st
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     New-Item -ItemType Directory -Path $BuildDirectory -Force|Out-Null
     $files=[ordered]@{}
-    $required=@('Vdevice.inf','Vdevice.sys')
-    if([IO.File]::ReadAllText((Join-Path $DriverDirectory 'Vdevice.inf')).Contains('TitanDemoClock.sys')){$required+='TitanDemoClock.sys'}
+    $required=@('Vdevice.inf','Vdevice.sys','Vdevice.cat','TitanDemoClock.sys')
     foreach($name in $required) {
-        $path=Join-Path $DriverDirectory $name
-        if(!(Test-Path -LiteralPath $path -PathType Leaf)){throw "Missing driver payload: $path. Build the driver first."}
-        $files[$name]=[IO.Path]::GetFullPath($path)
+        $file=Get-Item -LiteralPath (Join-Path $DriverDirectory $name)
+        if($file.PSIsContainer -or ($file.Attributes -band [IO.FileAttributes]::ReparsePoint) -or !$file.Length){throw "Invalid demo payload file: $name"}
+        $files[$name]=$file.FullName
     }
-    $catalog=Join-Path $DriverDirectory 'Vdevice.cat'
-    if(Test-Path -LiteralPath $catalog -PathType Leaf){$files['Vdevice.cat']=[IO.Path]::GetFullPath($catalog)}
-    if(!(Test-Path -LiteralPath $NativeHelper -PathType Leaf)){throw "Missing native setup helper: $NativeHelper"}
-    $files['VdeviceSetupNative.exe']=[IO.Path]::GetFullPath($NativeHelper)
+    $versionSource=[IO.File]::ReadAllText((Join-Path $PSScriptRoot 'Package.cs'))
+    $version=[regex]::Match($versionSource,'internal static string Version[^\r\n]+"([0-9.]+)"').Groups[1].Value
+    $inf=[IO.File]::ReadAllText($files['Vdevice.inf'])
+    if(!$version -or $inf -notmatch ('(?m)^DriverVer=[^,\r\n]+,'+[regex]::Escape($version)+'\r?$') -or
+       $inf -notmatch '(?m)^AddService=Vdevice,' -or $inf -notmatch '(?m)^AddService=VdeviceDemoClock,' -or
+       $inf -notmatch '(?m)^ServiceBinary=%13%\\TitanDemoClock\.sys\r?$'){throw 'The payload INF does not match this demo version and resident clock.'}
+    $microsoft=$true
+    foreach($name in 'Vdevice.sys','Vdevice.cat','TitanDemoClock.sys'){
+        $signature=Get-AuthenticodeSignature -LiteralPath $files[$name]
+        if($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -notlike 'CN=Microsoft Windows Hardware Compatibility Publisher,*'){$microsoft=$false}
+    }
+    $policy=[ordered]@{Product='Vdevice';DriverVersion=$version;Mode=$(if($microsoft){'Microsoft'}else{'Development'});TrialSeconds=3600;ClockRequired=$true;InstallationBlocked=!$microsoft}
+    $policyPath=Join-Path $BuildDirectory 'Signing.json'
+    [IO.File]::WriteAllText($policyPath,($policy|ConvertTo-Json),[Text.UTF8Encoding]::new($false))
+    $files['Signing.json']=[IO.Path]::GetFullPath($policyPath)
+    $helper=Get-Item -LiteralPath $NativeHelper
+    if($helper.PSIsContainer -or ($helper.Attributes -band [IO.FileAttributes]::ReparsePoint) -or !$helper.Length){throw 'Invalid native setup helper.'}
+    $files['VdeviceSetupNative.exe']=$helper.FullName
     $hashes=[ordered]@{}
     $zipPath=Join-Path $BuildDirectory 'Payload.zip'
     $stream=[IO.File]::Open($zipPath,[IO.FileMode]::Create,[IO.FileAccess]::Write,[IO.FileShare]::None)
@@ -33,7 +46,7 @@ function New-VdevicePayload([string]$BuildDirectory,[string]$DriverDirectory,[st
             foreach($entry in $files.GetEnumerator()) {
                 $hashes[$entry.Key]=(Get-FileHash -LiteralPath $entry.Value -Algorithm SHA256).Hash
                 $item=$archive.CreateEntry($entry.Key,[IO.Compression.CompressionLevel]::Optimal)
-                $item.LastWriteTime=[DateTimeOffset]::new(2026,1,1,0,0,0,[TimeSpan]::Zero)
+                $item.LastWriteTime=[DateTimeOffset]::new(2000,1,1,0,0,0,[TimeSpan]::Zero)
                 $input=[IO.File]::OpenRead($entry.Value);$output=$item.Open()
                 try{$input.CopyTo($output)}finally{$output.Dispose();$input.Dispose()}
             }

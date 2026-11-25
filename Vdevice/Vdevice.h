@@ -76,6 +76,7 @@ private:
     std::shared_ptr<Detail::Device_State> state_;
     friend Device Create_Device(const Device_Config&);
     friend Result Delete_Device(Device&);
+    friend Result Wait_Device_Ready(const Device&, std::uint32_t);
     friend Result Send_Input(const Device&, std::uint8_t, const std::vector<std::uint8_t>&);
 };
 enum class Output_Kind : std::uint32_t { Data = 1, Control = 2, DeviceState = 3 };
@@ -94,6 +95,9 @@ struct Output : Result {
 Result Validate_Device(const Device_Config&);
 Info Get_Info();
 Device Create_Device(const Device_Config&);
+// Wait for this device to enumerate. A separate output pump must answer any
+// delegated controls. Zero takes a single snapshot.
+Result Wait_Device_Ready(const Device&, std::uint32_t timeout = 10000);
 Result Delete_Device(Device&);
 Result Send_Input(const Device&, std::uint8_t endpoint, const std::vector<std::uint8_t>& data);
 Output Get_Output(std::uint32_t timeout = Infinite);

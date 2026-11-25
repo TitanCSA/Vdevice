@@ -7,8 +7,8 @@ Make Windows see a virtual keyboard, mouse or gamepad.
 
 **Try it**
 
-1. Run [VdeviceSetup.exe](https://github.com/TitanCSA/Vdevice/releases/download/v1.0.6.0-demo/VdeviceSetup.exe) and choose **Install**. If setup asks for a restart, restart Windows and reopen it.
-2. Extract the [examples ZIP](https://github.com/TitanCSA/Vdevice/releases/download/v1.0.6.0-demo/Vdevice-Examples-1.0.6.0.zip) and open **VdeviceMouseUI.exe**.
+1. Run [VdeviceSetup.exe](https://github.com/TitanCSA/Vdevice/releases/download/v1.0.6.1-demo/VdeviceSetup.exe) and choose **Install**. If setup asks for a restart, restart Windows and reopen it.
+2. Extract the [examples ZIP](https://github.com/TitanCSA/Vdevice/releases/download/v1.0.6.1-demo/Vdevice-Examples-1.0.6.1.zip) and open **VdeviceMouseUI.exe**.
 3. Click **Create device** and wait for **READY**. Set **x** to **32** and **y** to **0**, then click **Send state**. The pointer should move. Click **Disconnect** when you finish.
 <!-- simple-start:end -->
 
@@ -23,7 +23,7 @@ Make Windows see a virtual keyboard, mouse or gamepad.
 <summary>Project details and screenshots</summary>
 
 <!-- known-stability:start -->
-> **WDF-001 update:** the Microsoft-signed **1.0.6.0 demo** includes the controller teardown fix. The signed demo passed repeated removal and controller tests with Secure Boot enabled. The signed commercial 1.0.4.0 update is still pending. [Validation and current status](https://github.com/TitanCSA/Vdevice/issues/1).
+> **WDF-001 update:** the Microsoft-signed **1.0.6.1 demo** includes the controller teardown fix. The Demo installers passed in-place upgrade and removal tests on Windows 10 and Windows 11 with Secure Boot enabled. [Incident notes](https://github.com/TitanCSA/Vdevice/issues/1).
 <!-- known-stability:end -->
 
 Create and control **virtual USB devices** on **Windows 10/11 x64** with a

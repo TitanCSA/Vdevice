@@ -11,6 +11,91 @@
 #include <mutex>
 #include <sstream>
 #include <utility>
+#include <cfgmgr32.h>
+#include <cwchar>
+#include <set>
+#include <string_view>
+#pragma comment(lib,"cfgmgr32.lib")
+
+#define VDEVICE_SDK_VERSION "1.0.6.1"
+
+namespace Vdevice {
+namespace {
+std::string InstalledDriverVersions(const wchar_t* service) {
+    constexpr ULONG flags = CM_GETIDLIST_FILTER_SERVICE | CM_GETIDLIST_FILTER_PRESENT;
+    // DEVPKEY_Device_DriverVersion from devpkey.h. This is the installed INF
+    // version on the device, which may differ from the image loaded until reboot.
+    constexpr DEVPROPKEY driverVersion{{0xa8b865dd,0x2e3d,0x4094,{0xad,0x97,0xe5,0x93,0xa7,0x0c,0x75,0xd6}},3};
+    std::vector<wchar_t> ids;
+    CONFIGRET status = CR_BUFFER_SMALL;
+    for (int attempt = 0; attempt < 2 && status == CR_BUFFER_SMALL; ++attempt) {
+        ULONG count = 0;
+        status = CM_Get_Device_ID_List_SizeW(&count, service, flags);
+        if (status != CR_SUCCESS) break;
+        if (count <= 1) return "not detected";
+        ids.resize(count);
+        status = CM_Get_Device_ID_ListW(service, ids.data(), count, flags);
+    }
+    if (status != CR_SUCCESS) return "unavailable";
+
+    std::set<std::string> versions;
+    bool unknown = false;
+    for (wchar_t* id = ids.data(); *id; id += std::wcslen(id) + 1) {
+        DEVINST device{};
+        DEVPROPTYPE type{};
+        wchar_t value[64]{};
+        ULONG bytes = sizeof(value);
+        if (CM_Locate_DevNodeW(&device, id, CM_LOCATE_DEVNODE_NORMAL) != CR_SUCCESS ||
+            CM_Get_DevNode_PropertyW(device, &driverVersion, &type, reinterpret_cast<BYTE*>(value), &bytes, 0) != CR_SUCCESS ||
+            type != DEVPROP_TYPE_STRING || bytes < 2 * sizeof(wchar_t) || bytes > sizeof(value) ||
+            bytes % sizeof(wchar_t) != 0 || value[bytes / sizeof(wchar_t) - 1] != L'\0') {
+            unknown = true;
+            continue;
+        }
+        const std::wstring_view version(value, bytes / sizeof(wchar_t) - 1);
+        if (version.find_first_not_of(L"0123456789.") != std::wstring_view::npos) {
+            unknown = true;
+            continue;
+        }
+        std::string ascii;
+        ascii.reserve(version.size());
+        for (wchar_t character : version) ascii += static_cast<char>(character);
+        versions.insert(std::move(ascii));
+    }
+    if (versions.empty()) return unknown ? "unavailable" : "not detected";
+    std::string result;
+    for (const auto& version : versions) {
+        if (!result.empty()) result += ", ";
+        result += version;
+    }
+    if (unknown) result += ", unavailable on another device";
+    return result;
+}
+
+void AppendVersionDiagnostics(std::string& message) {
+    const DWORD lastError = GetLastError();
+    try {
+        std::string release = "unavailable", demo = "unavailable";
+        try { release = InstalledDriverVersions(L"VdeviceRelease"); } catch (const std::bad_alloc&) {}
+        try { demo = InstalledDriverVersions(L"Vdevice"); } catch (const std::bad_alloc&) {}
+        std::string details = "\nVdevice Demo SDK: " VDEVICE_SDK_VERSION "\nVdevice Release driver (installed): ";
+        details += release;
+        details += "\nVdevice Demo driver (installed): ";
+        details += demo;
+        message += details;
+    } catch (const std::bad_alloc&) {
+        // Reporting versions must not hide the original error.
+    }
+    SetLastError(lastError);
+}
+
+std::string WithVersionDiagnostics(const char* text) {
+    std::string message(text);
+    AppendVersionDiagnostics(message);
+    return message;
+}
+}
+}
 
 // Private wire ABI. Kept here so the distributable SDK consists of two files.
 #ifndef VDEVICE_PROTOCOL_H
@@ -281,13 +366,14 @@ Result Windows_Error(DWORD code, const char* operation) {
     Result result{code, operation};
     wchar_t message[512]{};
     const DWORD length = FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-        nullptr, code, 0, message, static_cast<DWORD>(sizeof(message) / sizeof(message[0])), nullptr);
+        nullptr, code, MAKELANGID(LANG_ENGLISH,SUBLANG_ENGLISH_US), message, static_cast<DWORD>(sizeof(message) / sizeof(message[0])), nullptr);
     if (length) {
         char utf8[2048]{};
         const int converted = WideCharToMultiByte(CP_UTF8,0,message,static_cast<int>(length),utf8,static_cast<int>(sizeof(utf8)),nullptr,nullptr);
         result.message += ": "; if (converted > 0) result.message.append(utf8,static_cast<std::size_t>(converted));
         while (!result.message.empty() && (result.message.back() == '\r' || result.message.back() == '\n')) result.message.pop_back();
     }
+    if (code != ERROR_TIMEOUT) AppendVersionDiagnostics(result.message);
     return result;
 }
 std::uint16_t Read16(const std::uint8_t* data) noexcept { return static_cast<std::uint16_t>(data[0] | (static_cast<unsigned>(data[1]) << 8)); }
@@ -559,25 +645,30 @@ Device::Device(Device&&) noexcept = default;
 Device& Device::operator=(Device&&) noexcept = default;
 Device::operator bool() const noexcept { return state_ && !state_->deleted.load() && !error; }
 std::uint64_t Device::Id() const noexcept { return state_ ? state_->id : 0; }
-Info Get_Info() {
-    Info result; Result status; auto session = Acquire(status);
-    if (!session) { result.error = status.error; result.message = status.message; return result; }
-    VD_INFO info{}; DWORD transferred = 0; status = Ioctl(session->handle,VD_QUERY,nullptr,0,&info,sizeof(info),transferred);
+namespace {
+DWORD TimeLeft(ULONGLONG start, DWORD timeout) {
+    if(timeout==INFINITE)return INFINITE;
+    const auto elapsed=GetTickCount64()-start;
+    return elapsed<timeout?timeout-static_cast<DWORD>(elapsed):0;
+}
+Info Read_Info(Session& session, ULONGLONG start, DWORD timeout) {
+    Info result; Result status;
+    VD_INFO info{}; DWORD transferred = 0; status = Ioctl(session.handle,VD_QUERY,nullptr,0,&info,sizeof(info),transferred,TimeLeft(start,timeout));
     if (!status || transferred != sizeof(info) || info.Version != VD_VERSION) {
-        result.error = status ? ERROR_REVISION_MISMATCH : status.error; result.message = status ? "Vdevice SDK/driver protocol version differs." : status.message; return result;
+        result.error = status ? ERROR_REVISION_MISMATCH : status.error; result.message = status ? WithVersionDiagnostics("Vdevice SDK/driver protocol version differs.") : status.message; return result;
     }
     result.version = info.Version; result.max_devices = info.MaxDevices; result.max_transfer = info.MaxTransfer;
     result.low_speed = info.LowSpeed != 0; result.full_speed = info.FullSpeed != 0; result.high_speed = info.HighSpeed != 0;
     result.trial_started = info.TrialStarted100ns != 0; result.trial_expired = info.TrialExpired != 0; result.trial_remaining_100ns = info.TrialRemaining100ns;
     result.quiescing = (info.Reserved2 & 1u) != 0; result.removing = (info.Reserved2 & 2u) != 0;
-    VD_DEVICE_LIST list{}; status = Ioctl(session->handle,VD_LIST,nullptr,0,&list,sizeof(list),transferred);
+    VD_DEVICE_LIST list{}; status = Ioctl(session.handle,VD_LIST,nullptr,0,&list,sizeof(list),transferred,TimeLeft(start,timeout));
     if (status && (transferred < offsetof(VD_DEVICE_LIST,Devices) || list.Count > VD_MAX_DEVICES ||
         transferred < offsetof(VD_DEVICE_LIST,Devices) + list.Count * sizeof(VD_DEVICE_INFO)))
         status = Failure(ERROR_INVALID_DATA,"Driver returned an invalid device list.");
     if (!status) { result.error = status.error; result.message = status.message; return result; }
     result.devices.reserve(list.Count);
     for (std::uint32_t i = 0; i < list.Count; ++i) {
-        const auto& source = list.Devices[i]; Device_Details target; target.id = source.Id; target.token = session->Token(source.Id);
+        const auto& source = list.Devices[i]; Device_Details target; target.id = source.Id; target.token = session.Token(source.Id);
         target.plugged = (source.Flags & 1) != 0; target.configured = (source.Flags & 2) != 0; target.powered = (source.Flags & 4) != 0;
         target.endpoint_count = source.EndpointCount; target.queued_inputs = source.QueuedInputs; target.queued_outputs = source.QueuedOutputs;
         target.inputs_accepted = source.InputsAccepted; target.inputs_completed = source.InputsCompleted;
@@ -585,6 +676,43 @@ Info Get_Info() {
         result.devices.push_back(std::move(target));
     }
     return result;
+}
+Result Ready_Snapshot(const Info& info, std::uint64_t id, bool expired) {
+    if(!info) {
+        if(info.error==ERROR_TIMEOUT)return Failure(ERROR_TIMEOUT,"Timed out querying the Vdevice driver during USB enumeration.");
+        return info;
+    }
+    if(info.quiescing || info.removing)return Failure(ERROR_DEVICE_NOT_CONNECTED,"The Vdevice controller is stopping.");
+    if(info.trial_expired)return Failure(ERROR_ACCESS_DENIED,"The Vdevice demo has expired for this Windows boot.");
+    const auto current=std::find_if(info.devices.begin(),info.devices.end(),
+        [id](const Device_Details& candidate){return candidate.id==id;});
+    if(current==info.devices.end() || !current->plugged)
+        return Failure(ERROR_DEVICE_NOT_CONNECTED,"The virtual USB device was removed.");
+    if(current->configured && current->powered)return {};
+    if(!expired)return {ERROR_NOT_READY,{}};
+    return {ERROR_TIMEOUT,std::string("Windows did not make the virtual USB device ready (plugged=1, configured=")+
+        (current->configured?"1":"0")+", powered="+(current->powered?"1":"0")+")."};
+}
+}
+Info Get_Info() {
+    Result status;
+    auto session=Acquire(status);
+    if(session)return Read_Info(*session,0,INFINITE);
+    Info result;
+    static_cast<Result&>(result)=std::move(status);
+    return result;
+}
+Result Wait_Device_Ready(const Device& device, std::uint32_t timeout) {
+    const auto state=device.state_;
+    if(!state || state->deleted.load())return Failure(ERROR_INVALID_HANDLE,"Device is not active.");
+    const auto start=GetTickCount64();
+    for(;;) {
+        const auto info=Read_Info(*state->session,start,timeout);
+        const DWORD remaining=TimeLeft(start,timeout);
+        const auto status=Ready_Snapshot(info,state->id,!remaining);
+        if(!info || status.error!=ERROR_NOT_READY)return status;
+        Sleep((std::min)(remaining,50ul));
+    }
 }
 Device Create_Device(const Device_Config& config) {
     Device result; std::vector<std::uint8_t> bytes; auto status = Detail::Serialize(config,bytes);
@@ -594,7 +722,7 @@ Device Create_Device(const Device_Config& config) {
     VD_ID created{}; DWORD transferred = 0;
     status = Ioctl(state->session->handle,VD_CREATE_DEVICE,bytes.data(),static_cast<DWORD>(bytes.size()),&created,sizeof(created),transferred);
     if (!status || transferred != sizeof(created) || !created.Id) {
-        result.error = status ? ERROR_INVALID_DATA : status.error; result.message = status ? "Driver returned an invalid device identity." : status.message; return result;
+        result.error = status ? ERROR_INVALID_DATA : status.error; result.message = status ? WithVersionDiagnostics("Driver returned an invalid device identity.") : status.message; return result;
     }
     state->id = created.Id; result.token = state->session->Token(state->id); result.state_ = std::move(state); return result;
 }
@@ -620,7 +748,7 @@ Output Get_Output(std::uint32_t timeout) {
     if (!status) { result.error = status.error; result.message = status.message; result.timed_out = status.error == ERROR_TIMEOUT; return result; }
     if (transferred < offsetof(VD_OUTPUT,Data) || packet.Length > VD_MAX_TRANSFER || packet.Length > transferred - offsetof(VD_OUTPUT,Data) ||
         packet.Kind < 1 || packet.Kind > 3 || packet.Endpoint > 255) {
-        result.error = ERROR_INVALID_DATA; result.message = "Driver returned an invalid output packet."; return result;
+        result.error = ERROR_INVALID_DATA; result.message = WithVersionDiagnostics("Driver returned an invalid output packet."); return result;
     }
     result.device_id = packet.Id; result.device_token = session->Token(packet.Id); result.request_id = packet.RequestId;
     result.kind = static_cast<Output_Kind>(packet.Kind); result.endpoint = static_cast<std::uint8_t>(packet.Endpoint);

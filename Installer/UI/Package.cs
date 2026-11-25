@@ -78,17 +78,101 @@ namespace Vdevice.Setup
     internal static class Package
     {
         private static readonly HashSet<string> Allowed = new HashSet<string>(StringComparer.Ordinal)
-        { "Vdevice.inf", "Vdevice.sys", "Vdevice.cat", "TitanDemoClock.sys", "VdeviceSetupNative.exe" };
-        internal static string Version { get { return "1.0.6.0"; } }
+        { "Vdevice.inf", "Vdevice.sys", "Vdevice.cat", "TitanDemoClock.sys", "Signing.json", "VdeviceSetupNative.exe" };
+        internal static string Version { get { return "1.0.6.1"; } }
         private static Stream Resource(string name)
         {
             Stream result = Assembly.GetExecutingAssembly().GetManifestResourceStream(name);
             if (result == null) throw new InvalidDataException("Missing embedded resource: " + name);
             return result;
         }
-        private static string Digest(Stream stream)
+        internal static string DigestEntry(Stream input, long expected, Stream output = null)
         {
-            using (SHA256 hash = SHA256.Create()) return BitConverter.ToString(hash.ComputeHash(stream)).Replace("-", "");
+            if (expected <= 0 || expected > 64L * 1024 * 1024) throw new InvalidDataException("Invalid decoded payload size.");
+            byte[] buffer = new byte[65536]; long total = 0; int count;
+            using (SHA256 hash = SHA256.Create())
+            {
+                while ((count = input.Read(buffer, 0, buffer.Length)) != 0)
+                {
+                    if (count > expected - total) throw new InvalidDataException("Decoded payload exceeds its declared size.");
+                    total += count;
+                    hash.TransformBlock(buffer, 0, count, buffer, 0);
+                    if (output != null) output.Write(buffer, 0, count);
+                }
+                if (total != expected) throw new InvalidDataException("Decoded payload is truncated.");
+                hash.TransformFinalBlock(buffer, 0, 0);
+                return BitConverter.ToString(hash.Hash).Replace("-", "");
+            }
+        }
+        internal static MutexSecurity OperationSecurity()
+        {
+            var security = new MutexSecurity();
+            security.SetAccessRuleProtection(true, false);
+            security.SetOwner(new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null));
+            foreach (var kind in new[] { WellKnownSidType.BuiltinAdministratorsSid, WellKnownSidType.LocalSystemSid })
+                security.AddAccessRule(new MutexAccessRule(new SecurityIdentifier(kind, null), MutexRights.FullControl, AccessControlType.Allow));
+            return security;
+        }
+        private static Mutex OperationMutex()
+        {
+            bool created; Mutex mutex = new Mutex(false, @"Global\VdeviceSetup-Transaction", out created, OperationSecurity());
+            try
+            {
+                var security = mutex.GetAccessControl();
+                var admins = new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null);
+                var system = new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null);
+                var owner = security.GetOwner(typeof(SecurityIdentifier));
+                if (!security.AreAccessRulesProtected || (!admins.Equals(owner) && !system.Equals(owner))) throw new UnauthorizedAccessException("The setup transaction lock has an unexpected owner or ACL.");
+                bool hasAdmins = false, hasSystem = false;
+                foreach (MutexAccessRule rule in security.GetAccessRules(true, true, typeof(SecurityIdentifier)))
+                {
+                    if (rule.AccessControlType != AccessControlType.Allow || rule.IsInherited || rule.MutexRights != MutexRights.FullControl
+                        || (!admins.Equals(rule.IdentityReference) && !system.Equals(rule.IdentityReference)))
+                        throw new UnauthorizedAccessException("The setup transaction lock permits an unexpected principal.");
+                    hasAdmins |= admins.Equals(rule.IdentityReference); hasSystem |= system.Equals(rule.IdentityReference);
+                }
+                if (!hasAdmins || !hasSystem) throw new UnauthorizedAccessException("The setup transaction lock ACL is incomplete.");
+                return mutex;
+            }
+            catch { mutex.Dispose(); throw; }
+        }
+        internal static SetupResult Exclusive(Func<SetupResult> operation, Func<Mutex> factory)
+        {
+            using (Mutex mutex = factory())
+            {
+                bool held = false;
+                try
+                {
+                    try { held = mutex.WaitOne(0); } catch (AbandonedMutexException) { held = true; }
+                    if (!held) return new SetupResult { ExitCode = 1618, Report = "Another Vdevice setup operation is running. Wait for it to finish and retry." };
+                    return operation();
+                }
+                finally { if (held) mutex.ReleaseMutex(); }
+            }
+        }
+        internal static bool ExpectedRemovalRestart(SetupSnapshot state, int nativeExit, int verificationExit)
+        {
+            return nativeExit == 3010 && verificationExit == 21 && state != null && state.LastOperation == "Uninstall"
+                && state.ControllerQuiesced && state.RestartRequired && state.ApiAvailable && state.PayloadMatches
+                && state.ImageError == 0 && state.QueryError == 21;
+        }
+        internal static bool IsMicrosoftPolicy(string text)
+        {
+            var policy = new JavaScriptSerializer().Deserialize<Dictionary<string, object>>(text);
+            if (policy == null) throw new InvalidDataException("Missing demo signing policy.");
+            foreach (string key in new[] { "Product", "DriverVersion", "Mode", "TrialSeconds", "ClockRequired", "InstallationBlocked" })
+                if (!policy.ContainsKey(key)) throw new InvalidDataException("Incomplete demo signing policy: " + key);
+            if (!(policy["Product"] is string) || (string)policy["Product"] != "Vdevice"
+                || !(policy["DriverVersion"] is string) || (string)policy["DriverVersion"] != Version
+                || !(policy["TrialSeconds"] is int) || (int)policy["TrialSeconds"] != 3600
+                || !(policy["ClockRequired"] is bool) || !(bool)policy["ClockRequired"]
+                || !(policy["Mode"] is string) || !(policy["InstallationBlocked"] is bool))
+                throw new InvalidDataException("The payload does not contain the matching Vdevice demo.");
+            var mode = (string)policy["Mode"];
+            var blocked = (bool)policy["InstallationBlocked"];
+            if (mode == "Microsoft" && !blocked) return true;
+            if (mode == "Development" && blocked) return false;
+            throw new InvalidDataException("Invalid demo signing mode.");
         }
         private static Dictionary<string, string> Manifest()
         {
@@ -96,10 +180,10 @@ namespace Vdevice.Setup
             using (StreamReader reader = new StreamReader(input, Encoding.UTF8))
             {
                 Dictionary<string, string> hashes = new JavaScriptSerializer().Deserialize<Dictionary<string, string>>(reader.ReadToEnd());
-                if (hashes == null || hashes.Count < 3 || hashes.Count > Allowed.Count) throw new InvalidDataException("Invalid payload manifest.");
+                if (hashes == null || hashes.Count != Allowed.Count) throw new InvalidDataException("Invalid payload manifest.");
                 foreach (KeyValuePair<string, string> pair in hashes)
                     if (!Allowed.Contains(pair.Key) || pair.Value == null || pair.Value.Length != 64 || !System.Text.RegularExpressions.Regex.IsMatch(pair.Value, "\\A[0-9A-Fa-f]{64}\\z")) throw new InvalidDataException("Invalid payload manifest entry.");
-                foreach (string required in new[] { "Vdevice.inf", "Vdevice.sys", "VdeviceSetupNative.exe" })
+                foreach (string required in Allowed)
                     if (!hashes.ContainsKey(required)) throw new InvalidDataException("Missing required payload: " + required);
                 return hashes;
             }
@@ -121,7 +205,7 @@ namespace Vdevice.Setup
                     if (entry.Length <= 0 || entry.Length > 64 * 1024 * 1024 || (total += entry.Length) > 128 * 1024 * 1024)
                         throw new InvalidDataException("Invalid payload size.");
                     using (Stream data = entry.Open())
-                        if (!String.Equals(Digest(data), expected, StringComparison.OrdinalIgnoreCase))
+                        if (!String.Equals(DigestEntry(data, entry.Length), expected, StringComparison.OrdinalIgnoreCase))
                             throw new InvalidDataException("Payload integrity check failed: " + entry.FullName);
                     if (visitor != null) visitor(entry);
                 }
@@ -129,8 +213,16 @@ namespace Vdevice.Setup
         }
         internal static string SelfTest()
         {
-            VisitPayload(null);
-            return "{\"passed\":true,\"installedAnything\":false,\"version\":\"" + Version + "\",\"payloadFiles\":" + Manifest().Count.ToString(CultureInfo.InvariantCulture) + "}";
+            bool installable = false;
+            VisitPayload(delegate(ZipArchiveEntry entry)
+            {
+                if (entry.FullName != "Signing.json") return;
+                if (entry.Length > 4096) throw new InvalidDataException("Demo signing policy is too large.");
+                using (var reader = new StreamReader(entry.Open(), Encoding.UTF8))
+                    installable = IsMicrosoftPolicy(reader.ReadToEnd());
+            });
+            return "{\"passed\":true,\"installedAnything\":false,\"version\":\"" + Version + "\",\"installable\":"
+                + (installable ? "true" : "false") + ",\"payloadFiles\":" + Manifest().Count.ToString(CultureInfo.InvariantCulture) + "}";
         }
         private static void CheckAncestors(string directory)
         {
@@ -185,6 +277,15 @@ namespace Vdevice.Setup
         }
         internal static SetupResult Run(string operation, Action<int, string> progress, CancellationToken cancellation)
         {
+            try { return Exclusive(delegate { return RunCore(operation, progress, cancellation); }, OperationMutex); }
+            catch (Exception error)
+            {
+                return new SetupResult { ExitCode = error is UnauthorizedAccessException ? 5 : 1,
+                    Report = "Setup transaction failed: " + error.GetType().Name + ": " + error.Message };
+            }
+        }
+        private static SetupResult RunCore(string operation, Action<int, string> progress, CancellationToken cancellation)
+        {
             if (operation != "/install" && operation != "/uninstall" && operation != "/status" && operation != "/diagnose")
                 throw new ArgumentException("Unsupported setup operation.", "operation");
             StringBuilder report = new StringBuilder();
@@ -220,12 +321,12 @@ namespace Vdevice.Setup
                     cancellation.ThrowIfCancellationRequested();
                     string destination = Path.Combine(stage, entry.FullName);
                     using (Stream input = entry.Open())
-                    using (FileStream output = new FileStream(destination, FileMode.CreateNew, FileAccess.Write, FileShare.None)) input.CopyTo(output);
+                    using (FileStream output = new FileStream(destination, FileMode.CreateNew, FileAccess.Write, FileShare.None)) DigestEntry(input, entry.Length, output);
                 });
                 log(30, "Payload SHA-256 checks passed.");
-                if (operation == "/install" && !File.Exists(Path.Combine(stage, "Vdevice.cat")))
+                if (operation == "/install" && !IsMicrosoftPolicy(File.ReadAllText(Path.Combine(stage, "Signing.json"), Encoding.UTF8)))
                 {
-                    log(100, "Installation stopped: the package has no driver catalog. Sign the generated driver package before using this installer on standard Windows. Windows security settings were not changed.");
+                    log(100, "Installation stopped: this development build requires the matching Microsoft-signed demo package.");
                     result.ExitCode = 577; result.Report = report.ToString(); return result;
                 }
                 cancellation.ThrowIfCancellationRequested();
@@ -254,7 +355,9 @@ namespace Vdevice.Setup
                     result.Snapshot = null; snapshotError = null;
                     start.Arguments = "/status \"" + Path.Combine(stage, "Vdevice.sys") + "\"";
                     int verification = RunHelper(start, recordOutput);
-                    if (result.Success && verification != 0 && verification != 3010) result.ExitCode = verification;
+                    if (result.Success && verification != 0 && verification != 3010
+                        && !(operation == "/uninstall" && ExpectedRemovalRestart(result.Snapshot, result.ExitCode, verification)))
+                        result.ExitCode = verification;
                     else if (result.ExitCode == 0 && verification == 3010) result.ExitCode = 3010;
                 }
                 if (result.Snapshot == null || snapshotError != null) { log(90, "Windows state could not be verified: " + (snapshotError ?? "no structured status received")); if (result.Success) result.ExitCode = 13; }

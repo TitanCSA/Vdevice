@@ -56,6 +56,7 @@ typedef struct ENDPOINT {
     WDFQUEUE Queue;
     WDFQUEUE Reads;
     ULONG Address,InterfaceNumber,Head,Tail;
+    ULONG Generation; // Incremented by purge to invalidate old host transfers.
     BOOLEAN Started,Purging,PurgeDeferred;
 } ENDPOINT;
 typedef struct REPORT_CACHE { ULONG Offset; BOOLEAN Valid; } REPORT_CACHE;
@@ -84,7 +85,7 @@ struct VIRTUAL_DEVICE {
     ULONG EndpointQueueUsers;
     KEVENT EndpointQueuesIdle;
     KEVENT EnumerationReady;
-    BOOLEAN Active,WasPlugged;
+    BOOLEAN Active,WasPlugged,LinkSuspended;
     BOOLEAN EndpointQueuesRetiring,EndpointQueuesDrained;
 };
 WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(VIRTUAL_DEVICE, VirtualGet)
@@ -621,25 +622,28 @@ static NTSTATUS ControlTransfer(VIRTUAL_DEVICE* d,WDFREQUEST request,PUCHAR buff
     }
     return STATUS_NOT_SUPPORTED;
 }
+static BOOLEAN TransferAllowedLocked(VIRTUAL_DEVICE* d) {
+    CONTROLLER* c=d->Controller;
+    return d->Active && !c->Removing && !c->Quiescing && !c->Expired;
+}
+static VOID MarkDataEndpointReadyLocked(ENDPOINT* endpoint) {
+    VIRTUAL_DEVICE* d=endpoint->Device;
+    ULONG previous=d->Info.Flags;
+    endpoint->Started=TRUE;
+    d->Info.Flags|=VdConfigured;
+    if(!d->LinkSuspended)d->Info.Flags|=VdPowered;
+    if(previous!=d->Info.Flags)StateLocked(d);
+}
 VOID VdUrb(WDFQUEUE queue,WDFREQUEST request,size_t output,size_t input,ULONG code) {
     ENDPOINT* endpoint=QueueGet(queue)->Endpoint;VIRTUAL_DEVICE* d=endpoint->Device;
     CONTROLLER* c=d->Controller;NTSTATUS status;PUCHAR buffer=NULL;ULONG capacity=0,completed=0;
     UNREFERENCED_PARAMETER(output);UNREFERENCED_PARAMETER(input);UNREFERENCED_PARAMETER(code);
     COMPLETION* context;
+    ULONG generation;
     WdfSpinLockAcquire(c->Lock);
-    status=(!d->Active || c->Removing || c->Quiescing || c->Expired)?STATUS_DEVICE_NOT_CONNECTED:STATUS_SUCCESS;
-    if(NT_SUCCESS(status) && endpoint->Address) {
-        /* Initial simple-endpoint activation does not always invoke a link
-           power transition callback. A real host data URB is concrete proof
-           that Windows configured and is using this endpoint. Respect UdeCx
-           purging: a callback delivered after purge must not reactivate it. */
-        if(endpoint->Purging || !WDF_IO_QUEUE_READY(WdfIoQueueGetState(queue,NULL,NULL)))status=STATUS_CANCELLED;
-        else {
-            ULONG previous=d->Info.Flags;endpoint->Started=TRUE;
-            d->Info.Flags|=VdConfigured|VdPowered;
-            if(previous!=d->Info.Flags)StateLocked(d);
-        }
-    }
+    generation=endpoint->Generation;
+    status=TransferAllowedLocked(d)?STATUS_SUCCESS:STATUS_DEVICE_NOT_CONNECTED;
+    if(NT_SUCCESS(status) && endpoint->Purging)status=STATUS_CANCELLED;
     if(NT_SUCCESS(status) && !d->SourceUsers++)KeClearEvent(&d->SourceIdle);
     WdfSpinLockRelease(c->Lock);
     if(!NT_SUCCESS(status)) { CompleteUrb(c,request,status,0);return; }
@@ -657,14 +661,35 @@ VOID VdUrb(WDFQUEUE queue,WDFREQUEST request,size_t output,size_t input,ULONG co
     context->Buffer=buffer;context->Capacity=capacity;
     if(NT_SUCCESS(status) && (endpoint->Address&128)) {
         status=WdfRequestForwardToIoQueue(request,endpoint->Reads);
-        if(NT_SUCCESS(status)) { WdfDpcEnqueue(c->Dpc);goto exit; }
-    } else if(NT_SUCCESS(status) && !endpoint->Address)status=ControlTransfer(d,request,buffer,capacity,&completed);
+        if(NT_SUCCESS(status)) {
+            // A valid, queued host read is proof of initial simple-endpoint
+            // activation even on systems that omit the initial power callback.
+            WdfSpinLockAcquire(c->Lock);
+            if(TransferAllowedLocked(d) && !endpoint->Purging && endpoint->Generation==generation)
+                MarkDataEndpointReadyLocked(endpoint);
+            WdfSpinLockRelease(c->Lock);
+            WdfDpcEnqueue(c->Dpc);
+            goto exit;
+        }
+    } else if(NT_SUCCESS(status) && !endpoint->Address) {
+        // A real control transfer proves EP0 is live even if the optional
+        // start callback was absent. This also releases a pending deletion.
+        BOOLEAN retire;
+        WdfSpinLockAcquire(c->Lock);
+        KeSetEvent(&d->EnumerationReady,IO_NO_INCREMENT,FALSE);
+        retire=FileGet(d->Owner)->Closing && !c->Removing;
+        if(!TransferAllowedLocked(d) || endpoint->Purging || endpoint->Generation!=generation)status=STATUS_CANCELLED;
+        WdfSpinLockRelease(c->Lock);
+        if(retire)WdfWorkItemEnqueue(c->ExpireWork);
+        if(NT_SUCCESS(status))status=ControlTransfer(d,request,buffer,capacity,&completed);
+    }
     else if(NT_SUCCESS(status)) {
         if(capacity>VD_MAX_TRANSFER)status=STATUS_BUFFER_OVERFLOW;
         else {
             LONG report=-1;BOOLEAN boot=FALSE;
             WdfSpinLockAcquire(c->Lock);
-            if(d->Layout.Interfaces[endpoint->InterfaceNumber]==2) {
+            if(!TransferAllowedLocked(d) || endpoint->Purging || endpoint->Generation!=generation)status=STATUS_CANCELLED;
+            else if(d->Layout.Interfaces[endpoint->InterfaceNumber]==2) {
                 ULONG iface=endpoint->InterfaceNumber;
                 boot=!d->Protocol[iface] && d->Layout.BootProtocol[iface]==1;
                 if(boot) { if(capacity!=1)status=STATUS_INVALID_PARAMETER; }
@@ -678,6 +703,7 @@ VOID VdUrb(WDFQUEUE queue,WDFREQUEST request,size_t output,size_t input,ULONG co
                 if(!OutputLocked(d,VdOutputData,endpoint->Address,0,NULL,buffer,capacity))status=STATUS_DEVICE_BUSY;
                 else {
                     completed=capacity;
+                    MarkDataEndpointReadyLocked(endpoint);
                     if(report>=0) { RtlCopyMemory(d->ReportData+d->Cache[report].Offset,buffer,capacity);d->Cache[report].Valid=TRUE; }
                     if(boot) { d->BootOutput[endpoint->InterfaceNumber]=buffer[0];d->BootOutputValid[endpoint->InterfaceNumber]=TRUE; }
                 }
@@ -719,18 +745,20 @@ static VOID ReleaseEndpointQueue(VIRTUAL_DEVICE* d) {
 }
 VOID VdEndpointStart(UDECXUSBENDPOINT endpoint) {
     ENDPOINT* e=EndpointGet(endpoint)->Endpoint;VIRTUAL_DEVICE* d=e->Device;CONTROLLER* c=d->Controller;
-    BOOLEAN orphan;WDFQUEUE queue;
+    BOOLEAN orphan;ULONG generation;WDFQUEUE queue;
     WdfSpinLockAcquire(c->Lock);
-    if(d->Active && !c->Expired && !c->Removing && !c->Quiescing) {
-        e->Started=TRUE;e->Purging=FALSE;
-        if(e->Address && (d->Info.Flags&(VdConfigured|VdPowered))!=(VdConfigured|VdPowered)) {
-            d->Info.Flags|=VdConfigured|VdPowered;StateLocked(d);
-        }
-    }
+    generation=e->Generation;
+    if(TransferAllowedLocked(d))e->Purging=FALSE;
     orphan=FileGet(d->Owner)->Closing && !c->Removing;
     queue=AcquireEndpointQueueLocked(e);
     WdfSpinLockRelease(c->Lock);
     if(queue)WdfIoQueueStart(queue);
+    WdfSpinLockAcquire(c->Lock);
+    if(TransferAllowedLocked(d) && !e->Purging && e->Generation==generation) {
+        if(e->Address)MarkDataEndpointReadyLocked(e);
+        else e->Started=TRUE;
+    }
+    WdfSpinLockRelease(c->Lock);
     if(!e->Address) {
         KeSetEvent(&d->EnumerationReady,IO_NO_INCREMENT,FALSE);
         if(orphan)WdfWorkItemEnqueue(c->ExpireWork);
@@ -747,7 +775,7 @@ VOID VdPurged(WDFQUEUE queue,WDFCONTEXT context) {
 VOID VdEndpointPurge(UDECXUSBENDPOINT endpoint) {
     ENDPOINT* e=EndpointGet(endpoint)->Endpoint;VIRTUAL_DEVICE* d=e->Device;CONTROLLER* c=d->Controller;
     ULONG i;BOOLEAN any=FALSE,deferred;WDFQUEUE queue;
-    WdfSpinLockAcquire(c->Lock);e->Started=FALSE;e->Purging=TRUE;
+    WdfSpinLockAcquire(c->Lock);e->Started=FALSE;e->Purging=TRUE;++e->Generation;
     while(e->Head!=VD_NONE) {
         ULONG index=e->Head;e->Head=PacketAt(d,index)->Next;PacketAt(d,index)->Next=d->FreeHead;d->FreeHead=index;
         --d->Info.QueuedInputs;
@@ -770,13 +798,17 @@ VOID VdEndpointPurge(UDECXUSBENDPOINT endpoint) {
 NTSTATUS VdPowerEntry(WDFDEVICE controller,UDECXUSBDEVICE usb) {
     VIRTUAL_DEVICE* d=UsbGet(usb)->Device;CONTROLLER* c=ControllerGet(controller);
     WdfSpinLockAcquire(c->Lock);
-    if(d->Active && !TrialExpiredLocked(c) && !c->Removing && !c->Quiescing) { d->Info.Flags|=VdPowered;StateLocked(d); }
+    d->LinkSuspended=FALSE;
+    if(!TrialExpiredLocked(c) && TransferAllowedLocked(d) && !(d->Info.Flags&VdPowered)) { d->Info.Flags|=VdPowered;StateLocked(d); }
     WdfSpinLockRelease(c->Lock);WdfDpcEnqueue(c->Dpc);return STATUS_SUCCESS;
 }
 NTSTATUS VdPowerExit(WDFDEVICE controller,UDECXUSBDEVICE usb,UDECX_USB_DEVICE_WAKE_SETTING wake) {
     VIRTUAL_DEVICE* d=UsbGet(usb)->Device;CONTROLLER* c=ControllerGet(controller);
     UNREFERENCED_PARAMETER(wake);
-    WdfSpinLockAcquire(c->Lock);d->Info.Flags&=~VdPowered;StateLocked(d);WdfSpinLockRelease(c->Lock);
+    WdfSpinLockAcquire(c->Lock);
+    d->LinkSuspended=TRUE;
+    if(d->Info.Flags&VdPowered) { d->Info.Flags&=~VdPowered;StateLocked(d); }
+    WdfSpinLockRelease(c->Lock);
     WdfDpcEnqueue(c->Dpc);return STATUS_SUCCESS;
 }
 static NTSTATUS CreateQueue(CONTROLLER* c,VIRTUAL_DEVICE* d,WDFFILEOBJECT owner,ENDPOINT* endpoint,BOOLEAN reads,WDFQUEUE* queue) {
