@@ -1,5 +1,15 @@
 # Vdevice - Windows Kernel Driver for Virtual USB Keyboard, Mouse and Gamepad
 
+<!-- full-version-contact:start -->
+> [!IMPORTANT]
+> **Get the version without the one-hour demo limit**
+>
+> **Discord · `titancsa`**. Open [Discord](https://discord.com/app), choose **Friends → Add Friend**, enter **`titancsa`** and send a message.
+> Send the project name and ask for its full version. TitanCSA will share the purchase details privately.
+>
+> **FR · Version sans la limite d’une heure.** Ajoute **`titancsa`** sur Discord et envoie le nom du projet. Le lien d’achat est communiqué en privé.
+<!-- full-version-contact:end -->
+
 <!-- known-stability:start -->
 > **WDF-001 update:** the Microsoft-signed **1.0.6.0 demo** includes the controller teardown fix. The signed demo passed repeated removal and controller tests with Secure Boot enabled. The signed commercial 1.0.4.0 update is still pending. [Validation and current status](https://github.com/TitanCSA/Vdevice/issues/1).
 <!-- known-stability:end -->
@@ -13,7 +23,7 @@ seven library operations; model-specific protocols live in the examples.
 [Installation](docs/INSTALLATION.md) | [Raw C++ API](docs/API.md) |
 [Graphical examples](Examples/UI/README.md) | [Compatibility](docs/VALIDATION.md)
 
-[Project overview and edition guide](https://titancsa.github.io/projects/vdevice/) · [Buy Release · €400 Lifetime](https://licences.configcsa.com/vdevice)
+[Project overview and edition guide](https://titancsa.github.io/projects/vdevice/) · [Contact titancsa on Discord](https://titancsa.github.io/about/evidence/#release-contact)
 
 | Keyboard control panel | DS4 control panel |
 | --- | --- |
@@ -167,7 +177,7 @@ This builds user-mode components and runs offline tests. **Demo/evaluation drive
 **One hour per Windows kernel boot**, starting at the first successful virtual
 device creation and shared across applications. Sleep counts; closing or
 reinstalling does not reset it. Expiry disconnects virtual devices and refuses
-new creation/transfers until Windows **Restart**. [Get the licensed Vdevice Release](https://licences.configcsa.com/vdevice).
+new creation/transfers until Windows **Restart**. [Contact titancsa on Discord](https://titancsa.github.io/about/evidence/#release-contact).
 
 The Xbox 360 and DS4 examples use descriptor/protocol material from
 [nefarius/ViGEmBus](https://github.com/nefarius/ViGEmBus) under BSD-3-Clause;
@@ -214,11 +224,6 @@ Pour vcpkg et Conan, configure d abord le registre TitanCSA avec [le guide compl
 Les anciens imports Go et versions JitPack gardent leurs tags. Pour les anciennes archives SDK, utilise [les liens de remplacement](https://github.com/TitanCSA/sdk-packages/blob/main/release-assets/URL-MIGRATION.json).
 <!-- central-sdk-packages:end -->
 
-<!-- full-version-contact:start -->
-> **Licensed Release** · [Buy Vdevice directly](https://licences.configcsa.com/vdevice).
->
-> For integration, OEM and support questions, contact `titancsa` on Discord.
-<!-- full-version-contact:end -->
 
 ## Performance & Benchmarks
 
