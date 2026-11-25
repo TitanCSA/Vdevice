@@ -23,7 +23,7 @@ Make Windows see a virtual keyboard, mouse or gamepad.
 <summary>Project details and screenshots</summary>
 
 <!-- known-stability:start -->
-> **WDF-001 update:** the Microsoft-signed **1.0.6.1 demo** includes the controller teardown fix. The Demo installers passed in-place upgrade and removal tests on Windows 10 and Windows 11 with Secure Boot enabled. [Incident notes](https://github.com/TitanCSA/Vdevice/issues/1).
+> **WDF-001 update:** the Microsoft-signed **1.0.6.1 demo** includes the controller teardown fix. The Demo installers passed in-place upgrade and removal tests on Windows 10 and Windows 11 with Secure Boot enabled. Signed Release **1.0.4.1** includes the fix too. [Installation evidence](https://titancsa.github.io/assets/vdevice-signed-versions-2026-11-25.json). [Incident notes](https://github.com/TitanCSA/Vdevice/issues/1).
 <!-- known-stability:end -->
 
 Create and control **virtual USB devices** on **Windows 10/11 x64** with a
@@ -249,4 +249,4 @@ Vendor HID reports, independent keyboard/mouse and controller reception, and a m
 |---|---|
 | Vendor-defined HID delivery | 34 validated runs; 61,000 post-warmup reports |
 
-**Vdevice benchmark status.** The original campaign recorded a controller teardown crash with demo 1.0.5.0. The signed 1.0.6.0 demo passed separate teardown tests. Commercial Vdevice qualification remains pending. [Incident and edition status](https://titancsa.github.io/TitanCSA-Benchmarks/methodology/incident-wdf-001/).
+**Vdevice benchmark status.** The original campaign recorded a controller teardown crash with demo 1.0.5.0. The signed 1.0.6.0 demo passed separate teardown tests. The fix is available in signed Demo 1.0.6.1 and signed Release 1.0.4.1. The [dated installer record](https://titancsa.github.io/assets/vdevice-signed-versions-2026-11-25.json) covers Windows 10 and 11 upgrades and pre-activation readiness. [Incident and edition status](https://titancsa.github.io/TitanCSA-Benchmarks/methodology/incident-wdf-001/).
