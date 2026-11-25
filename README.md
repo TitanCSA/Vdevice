@@ -194,7 +194,7 @@ Les sources, licences, guides API et exemples sont regroupes dans [le depot SDK 
 | --- | --- | --- |
 | vcpkg | `vdevice` | `vcpkg install vdevice:x64-windows` |
 | Conan | `vdevice` | `conan install --requires=vdevice/1.0.5 -r titancsa --build=missing -s compiler.cppstd=17` |
-| NuGet | `Vdevice.Native` | `Install-Package Vdevice.Native -Version 1.0.5` |
+| NuGet | [Vdevice.Native](https://www.nuget.org/packages/Vdevice.Native/1.0.6) | `Install-Package Vdevice.Native -Version 1.0.6` (Visual Studio, C++ x64; [signed demo driver](https://github.com/TitanCSA/Vdevice/releases/tag/v1.0.6.0-demo)) |
 | NuGet | `Vdevice.SDK` | `dotnet add package Vdevice.SDK --version 1.0.0` |
 | PyPI | `vdevice` | Commande prevue apres publication : `python -m pip install vdevice==1.0.0` |
 | Conda | `vdevice` | `conda install --override-channels -c https://raw.githubusercontent.com/TitanCSA/sdk-packages/089bc73095aa8eda89bacbe10d0b9e58394b0207/conda-channel -c conda-forge vdevice` (canal TitanCSA) |
