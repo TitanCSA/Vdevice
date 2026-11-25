@@ -13,7 +13,7 @@ seven library operations; model-specific protocols live in the examples.
 [Installation](docs/INSTALLATION.md) | [Raw C++ API](docs/API.md) |
 [Graphical examples](Examples/UI/README.md) | [Compatibility](docs/VALIDATION.md)
 
-[Project overview and edition guide](https://titancsa.github.io/projects/vdevice/) · [Buy the licensed Release](https://licences.configcsa.com/vdevice)
+[Project overview and edition guide](https://titancsa.github.io/projects/vdevice/) · [Buy Release · €400 Lifetime](https://licences.configcsa.com/vdevice)
 
 | Keyboard control panel | DS4 control panel |
 | --- | --- |
