@@ -136,6 +136,8 @@ console firmware replicas.
 
 ## Raw C++ SDK
 
+**First SDK check.** Extract the [starter ZIP](https://titancsa.github.io/downloads/first-sdk-checks.zip) and run `python scripts/test_first_sdk.py vdevice --run` from that folder. It reads driver information without creating a virtual device. [Tools required](https://titancsa.github.io/guides/installer-and-sdk/).
+
 Add [`Vdevice.h`](Vdevice/Vdevice.h) and [`Vdevice.cpp`](Vdevice/Vdevice.cpp) to your
 Windows x64 C++17 application. The library contains no built-in device profiles.
 
