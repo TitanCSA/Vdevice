@@ -453,7 +453,16 @@ std::shared_ptr<Session> Acquire(Result& result) {
     if (session) return session;
     HANDLE handle = CreateFileW(VD_PATH, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE,
         nullptr, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, nullptr);
-    if (handle == INVALID_HANDLE_VALUE) { result = Windows_Error(GetLastError(), "Open Vdevice (install the driver and run this process elevated)"); return {}; }
+    if (handle == INVALID_HANDLE_VALUE) {
+        const DWORD error = GetLastError();
+        const char* operation = "Open Vdevice";
+        if (error == ERROR_FILE_NOT_FOUND || error == ERROR_PATH_NOT_FOUND)
+            operation = "Open Vdevice (run VdeviceSetup.exe from the matching signed Vdevice driver package)";
+        else if (error == ERROR_ACCESS_DENIED)
+            operation = "Open Vdevice (run the application with administrator privileges)";
+        result = Windows_Error(error, operation);
+        return {};
+    }
     // Preserve handle ownership even if allocating the session or token prefix
     // throws: no raw Windows handle is leaked on allocation failure.
     struct Handle_Guard {
