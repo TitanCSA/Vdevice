@@ -3,9 +3,11 @@
 <!-- simple-start:start -->
 Make Windows see a virtual keyboard, mouse or gamepad.
 
-**Windows 10 or 11, 64-bit.**
+[First steps](#first-steps) · [Develop](#sdk-and-packages) · [Maintain](https://github.com/TitanCSA/sdk-packages/blob/main/CONTRIBUTING.md)
 
-**Try it**
+## First steps
+
+**Windows 10 or 11, 64-bit.**
 
 1. Run [VdeviceSetup.exe](https://github.com/TitanCSA/Vdevice/releases/download/v1.0.6.1-demo/VdeviceSetup.exe) and choose **Install**. If setup asks for a restart, restart Windows and reopen it.
 2. Extract the [examples ZIP](https://github.com/TitanCSA/Vdevice/releases/download/v1.0.6.1-demo/Vdevice-Examples-1.0.6.1.zip) and open **VdeviceMouseUI.exe**.
@@ -210,32 +212,11 @@ You are solely responsible for how you use, modify or distribute the software, f
 To the maximum extent permitted by applicable law, the software is provided "AS IS", without warranties of any kind, and TitanCSA and the contributors are not liable for claims, damages, data loss, system damage or other consequences arising from its use or misuse. Nothing in this notice excludes liability that cannot legally be excluded. Existing project and third-party license terms remain applicable.
 
 <!-- central-sdk-packages:start -->
-## Paquets et installation
+<a name="paquets-et-installation"></a>
 
-Les sources, licences, guides API et exemples sont regroupes dans [le depot SDK dedie](https://github.com/TitanCSA/sdk-packages/tree/main/projects/Vdevice). Choisis le paquet a installer puis execute sa commande dans son dossier.
+## SDK and packages
 
-| Registre | Paquet | Installation / utilisation |
-| --- | --- | --- |
-| vcpkg | `vdevice` | `vcpkg install vdevice:x64-windows` |
-| Conan | `vdevice` | `conan install --requires=vdevice/1.0.5 -r titancsa --build=missing -s compiler.cppstd=17` |
-| NuGet | [Vdevice.Native](https://www.nuget.org/packages/Vdevice.Native/1.0.6) | `Install-Package Vdevice.Native -Version 1.0.6` (Visual Studio, C++ x64; [signed demo driver](https://github.com/TitanCSA/Vdevice/releases/tag/v1.0.6.0-demo)) |
-| NuGet | `Vdevice.SDK` | `dotnet add package Vdevice.SDK --version 1.0.0` |
-| PyPI | `vdevice` | Commande prevue apres publication : `python -m pip install vdevice==1.0.0` |
-| Conda | `vdevice` | `conda install --override-channels -c https://raw.githubusercontent.com/TitanCSA/sdk-packages/089bc73095aa8eda89bacbe10d0b9e58394b0207/conda-channel -c conda-forge vdevice` (canal TitanCSA) |
-| crates.io | `vdevice` | `cargo add vdevice@1.0.0` |
-| npm | `vdevice` | Commande prevue apres publication : `npm install vdevice@1.0.0` |
-| Maven Central | `io.github.titancsa:vdevice` | `io.github.titancsa:vdevice:1.0.0 (pom.xml / Gradle)` |
-| JitPack | `com.github.TitanCSA:Vdevice` | `com.github.TitanCSA:Vdevice:java-sdk-v1.0.0 (avec le depot JitPack)` |
-| Go Modules | `github.com/TitanCSA/Vdevice/Vdevice-Go-modules` | `go get github.com/TitanCSA/Vdevice/Vdevice-Go-modules@v1.0.0` |
-| pkg.go.dev | `github.com/TitanCSA/Vdevice/Vdevice-Go-modules` | `Documentation : https://pkg.go.dev/github.com/TitanCSA/Vdevice/Vdevice-Go-modules@v1.0.0` |
-| PowerShell Gallery | `Vdevice` | `Install-Module Vdevice -RequiredVersion 1.0.0 -Scope CurrentUser` |
-| pub.dev | `vdevice` | `dart pub add vdevice:1.0.0` |
-| RubyGems | `vdevice` | `gem install vdevice -v 1.0.0` |
-| Packagist | `titancsa/vdevice` | `composer require titancsa/vdevice:1.0.0` |
-
-Pour vcpkg et Conan, configure d abord le registre TitanCSA avec [le guide complet](https://github.com/TitanCSA/sdk-packages/tree/main/projects/Vdevice/README.md). Le guide explique aussi Maven/Gradle, les prerequis et le chargement des DLL. Les pilotes/applications du produit sont installes separement. Les commandes marquees prevues ne sont pas encore disponibles.
-
-Les anciens imports Go et versions JitPack gardent leurs tags. Pour les anciennes archives SDK, utilise [les liens de remplacement](https://github.com/TitanCSA/sdk-packages/blob/main/release-assets/URL-MIGRATION.json).
+Choose a language in the [SDK and package guide](https://github.com/TitanCSA/sdk-packages/tree/main/projects/Vdevice#readme) for exact install commands and examples. If your example requires a driver or app, install it separately.
 <!-- central-sdk-packages:end -->
 
 
