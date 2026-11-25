@@ -1,0 +1,9 @@
+cff-version: 1.2.0
+message: "Please include the release tag or commit and edition you used when citing this repository."
+title: "Vdevice"
+type: software
+authors:
+  - name: TitanCSA
+repository-code: https://github.com/TitanCSA/Vdevice
+url: https://titancsa.github.io/projects/vdevice/
+abstract: "Windows C++ SDK and signed driver for virtual USB devices, with HID and controller examples."
