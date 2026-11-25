@@ -1,14 +1,26 @@
 # Vdevice - Windows Kernel Driver for Virtual USB Keyboard, Mouse and Gamepad
 
+<!-- simple-start:start -->
+Make Windows see a virtual keyboard, mouse or gamepad.
+
+**Windows 10 or 11, 64-bit.**
+
+**Try it**
+
+1. Run [VdeviceSetup.exe](https://github.com/TitanCSA/Vdevice/releases/download/v1.0.6.0-demo/VdeviceSetup.exe) and choose **Install**. If setup asks for a restart, restart Windows and reopen it.
+2. Extract the [examples ZIP](https://github.com/TitanCSA/Vdevice/releases/download/v1.0.6.0-demo/Vdevice-Examples-1.0.6.0.zip) and open **VdeviceMouseUI.exe**.
+3. Click **Create device** and wait for **READY**. Enter a small movement, then click **Send state**. The pointer should move. Click **Disconnect** when you finish.
+<!-- simple-start:end -->
+
 <!-- full-version-contact:start -->
 > [!IMPORTANT]
-> **Get the version without the one-hour demo limit**
+> **Version without the one-hour demo limit**
 >
-> **Discord · `titancsa`**. Open [Discord](https://discord.com/app), choose **Friends → Add Friend**, enter **`titancsa`** and send a message.
-> Send the project name and ask for its full version. TitanCSA will share the purchase details privately.
->
-> **FR · Version sans la limite d’une heure.** Ajoute **`titancsa`** sur Discord et envoie le nom du projet. Le lien d’achat est communiqué en privé.
+> In [Discord](https://discord.com/app), choose **Add Friend** and enter **`titancsa`**. Send the project name. Purchase details are sent privately.
 <!-- full-version-contact:end -->
+
+<details>
+<summary>Project details and screenshots</summary>
 
 <!-- known-stability:start -->
 > **WDF-001 update:** the Microsoft-signed **1.0.6.0 demo** includes the controller teardown fix. The signed demo passed repeated removal and controller tests with Secure Boot enabled. The signed commercial 1.0.4.0 update is still pending. [Validation and current status](https://github.com/TitanCSA/Vdevice/issues/1).
@@ -23,7 +35,6 @@ seven library operations; model-specific protocols live in the examples.
 [Installation](docs/INSTALLATION.md) | [Raw C++ API](docs/API.md) |
 [Graphical examples](Examples/UI/README.md) | [Compatibility](docs/VALIDATION.md)
 
-[Project overview and edition guide](https://titancsa.github.io/projects/vdevice/) · [Contact titancsa on Discord](https://titancsa.github.io/about/evidence/#release-contact)
 
 | Keyboard control panel | DS4 control panel |
 | --- | --- |
@@ -31,11 +42,12 @@ seven library operations; model-specific protocols live in the examples.
 
 Screenshots show offline previews of the applications, not hardware tests.
 
+</details>
+
 ## Install and try
 
 For a commercial ZIP, use the [Release activation troubleshooting guide](https://titancsa.github.io/guides/release-activation-help/) to check Windows error 2, the installed driver and SDK versions.
 
-Try the [virtual USB mouse quickstart](https://titancsa.github.io/guides/vdevice-virtual-usb-mouse/) with the matching signed demo and published mouse panel.
 
 Run the [custom HID interoperability test](https://titancsa.github.io/guides/vdevice-custom-hid-test/) with hidapitester, or [check the ZIP and signed driver catalog](https://titancsa.github.io/guides/verify-windows-driver-package/) before setup.
 
