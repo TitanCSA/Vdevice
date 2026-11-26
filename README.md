@@ -14,6 +14,8 @@ Make Windows see a virtual keyboard, mouse or gamepad.
 3. Click **Create device** and wait for **READY**. Set **x** to **32** and **y** to **0**, then click **Send state**. The pointer should move. Click **Disconnect** when you finish.
 <!-- simple-start:end -->
 
+[Premier essai en français](https://titancsa.github.io/fr/souris-usb-virtuelle-vdevice/)
+
 <!-- full-version-contact:start -->
 > [!IMPORTANT]
 > **Version without the one-hour demo limit**
