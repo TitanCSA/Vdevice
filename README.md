@@ -51,7 +51,7 @@ Screenshots show offline previews of the applications, not hardware tests.
 For a commercial ZIP, use the [Release activation troubleshooting guide](https://titancsa.github.io/guides/release-activation-help/) to check Windows error 2, the installed driver and SDK versions.
 
 
-Run the [custom HID interoperability test](https://titancsa.github.io/guides/vdevice-custom-hid-test/) with hidapitester, or [check the ZIP and signed driver catalog](https://titancsa.github.io/guides/verify-windows-driver-package/) before setup.
+Run the [custom HID interoperability test](https://titancsa.github.io/guides/vdevice-custom-hid-test/) with hidapitester, or [check the ZIP and signed driver catalog](https://titancsa.github.io/guides/verify-windows-driver-package/) before setup. · [Vérifier le pilote avant installation (FR)](https://titancsa.github.io/fr/verifier-pilote-windows/)
 
 Use a virtual keyboard to repeat an application's input test or experiment with
 USB/HID descriptors without building a physical device. This runs on the Windows
