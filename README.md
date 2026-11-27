@@ -48,7 +48,7 @@ Screenshots show offline previews of the applications, not hardware tests.
 
 ## Install and try
 
-For a commercial ZIP, use the [Release activation troubleshooting guide](https://titancsa.github.io/guides/release-activation-help/) to check Windows error 2, the installed driver and SDK versions.
+If Vdevice Release shows Windows error 2, [check and repair the activation interface](https://titancsa.github.io/guides/release-activation-help/#vdevice-error-2) · [Dépannage en français](https://titancsa.github.io/fr/activation-release/#vdevice-erreur-2).
 
 
 Run the [custom HID interoperability test](https://titancsa.github.io/guides/vdevice-custom-hid-test/) with hidapitester, or [check the ZIP and signed driver catalog](https://titancsa.github.io/guides/verify-windows-driver-package/) before setup. · [Vérifier le pilote avant installation (FR)](https://titancsa.github.io/fr/verifier-pilote-windows/)
