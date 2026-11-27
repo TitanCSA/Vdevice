@@ -7,7 +7,7 @@ Make Windows see a virtual keyboard, mouse or gamepad.
 
 ## First steps
 
-**Windows 10 or 11, 64-bit.**
+**Windows 10 version 2004 or later, or Windows 11, on x64.**
 
 1. Run [VdeviceSetup.exe](https://github.com/TitanCSA/Vdevice/releases/download/v1.0.6.1-demo/VdeviceSetup.exe) and choose **Install**. If setup asks for a restart, restart Windows and reopen it.
 2. Extract the [examples ZIP](https://github.com/TitanCSA/Vdevice/releases/download/v1.0.6.1-demo/Vdevice-Examples-1.0.6.1.zip) and open **VdeviceMouseUI.exe**.
@@ -28,7 +28,7 @@ Make Windows see a virtual keyboard, mouse or gamepad.
 > **WDF-001 update:** the Microsoft-signed **1.0.6.1 demo** includes the controller teardown fix. The Demo installers passed in-place upgrade and removal tests on Windows 10 and Windows 11 with Secure Boot enabled. Signed Release **1.0.4.1** includes the fix too. [Installation evidence](https://titancsa.github.io/assets/vdevice-signed-versions-2026-11-25.json). [Incident notes](https://github.com/TitanCSA/Vdevice/issues/1).
 <!-- known-stability:end -->
 
-Create and control **virtual USB devices** on **Windows 10/11 x64** with a
+Create and control **virtual USB devices** with a
 **Microsoft-signed kernel driver** and a **two-file C++17 SDK**. Define raw USB/HID
 descriptors, VID/PID, strings, endpoints and reports. Every device uses the same
 seven library operations; model-specific protocols live in the examples.

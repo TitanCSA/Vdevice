@@ -1,6 +1,7 @@
 # Install, diagnose and remove Vdevice
 
-Use Windows 10/11 x64. Native GIP requires Windows 10 21H2 or later. Installers
+Use Windows 10 version 2004 (build 19041) or later, or Windows 11, on x64.
+Native GIP requires Windows 10 21H2 (build 19044) or later. Installers
 and device creation need administrator rights; offline descriptor checks do not.
 
 1. Download `VdeviceSetup.exe` from [Releases](https://github.com/TitanCSA/Vdevice/releases/latest).
