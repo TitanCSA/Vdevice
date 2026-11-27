@@ -3,7 +3,7 @@
 <!-- simple-start:start -->
 Make Windows see a virtual keyboard, mouse or gamepad.
 
-[First steps](#first-steps) · [Develop](#sdk-and-packages) · [Maintain](https://github.com/TitanCSA/sdk-packages/blob/main/CONTRIBUTING.md)
+[Guide en français](https://titancsa.github.io/fr/souris-usb-virtuelle-vdevice/) · [SDK](#sdk-and-packages) · [Full version on Discord](https://titancsa.github.io/about/evidence/#release-contact)
 
 ## First steps
 
@@ -13,8 +13,6 @@ Make Windows see a virtual keyboard, mouse or gamepad.
 2. Extract the [examples ZIP](https://github.com/TitanCSA/Vdevice/releases/download/v1.0.6.1-demo/Vdevice-Examples-1.0.6.1.zip) and open **VdeviceMouseUI.exe**.
 3. Click **Create device** and wait for **READY**. Set **x** to **32** and **y** to **0**, then click **Send state**. The pointer should move. Click **Disconnect** when you finish.
 <!-- simple-start:end -->
-
-[Premier essai en français](https://titancsa.github.io/fr/souris-usb-virtuelle-vdevice/)
 
 <!-- full-version-contact:start -->
 > [!IMPORTANT]
@@ -219,6 +217,8 @@ To the maximum extent permitted by applicable law, the software is provided "AS 
 ## SDK and packages
 
 Choose a language in the [SDK and package guide](https://github.com/TitanCSA/sdk-packages/tree/main/projects/Vdevice#readme) for exact install commands and examples. If your example requires a driver or app, install it separately.
+
+[First SDK check](https://titancsa.github.io/guides/vdevice-virtual-usb-mouse/#first-sdk-check) · [Python example](https://titancsa.github.io/guides/vdevice-virtual-usb-mouse/#python-sdk) · [Package maintenance](https://github.com/TitanCSA/sdk-packages/blob/main/CONTRIBUTING.md)
 <!-- central-sdk-packages:end -->
 
 
